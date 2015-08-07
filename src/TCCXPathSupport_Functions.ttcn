@@ -1,0 +1,103 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCXPathSupport_Functions.ttcn
+//  Description:        TCC Useful Functions: XPath Support Functions
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2008-08-26
+//  Contact:            http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: TCCXPathSupport_Functions
+// 
+//  Purpose:
+//    This module makes it possible to handle XML data throughout processing the
+//    XML data structure (tree) with in the way of handling XPath queries.
+// 
+//  Module Parameters:
+//    - 
+// 
+//  Module depends on:
+//    -
+// 
+//  Current Owner:
+//    Marton Godar (EMRTGOD)
+// 
+//  Last Review Date:
+//    -
+// 
+///////////////////////////////////////////////////////////////////////////////
+module TCCXPathSupport_Functions {
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: XPathQuery
+// 
+//  Purpose:
+//    apply an XPath query on an XML document
+// 
+//  Parameters:
+//    xml_doc: the XML document to be processed. It is modeled by a pure TTCN-3
+//                universal charstring and passed as an input parameter to this 
+//                function
+//
+//    xpath_query: the XPath Query. With this technology we can access a node of
+//                    the XML tree. It is passed to the function as a universal 
+//                    charstring
+//  
+//  Return Value:
+//    universal charstring - result of the query (information about one node of
+//                              the XML tree)
+// 
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    -
+// 
+///////////////////////////////////////////////////////////////////////////////
+external function XPathQuery ( 
+  in universal charstring xml_doc, 
+  in universal charstring xpath_query ) 
+return universal charstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: XPathCheckXML
+// 
+//  Purpose:
+//    check well formatness of the XML document
+// 
+//  Parameters:
+//    xml_doc: the XML document to be processed. It is modeled by a pure TTCN-3
+//                universal charstring and passed as an input parameter to this 
+//                function
+//
+//    error_string: the description of the error
+//  
+//  Return Value:
+//    boolean - result of check, true - if the documenbt is OK
+//                               false - soemthing is wrong// 
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    -
+// 
+///////////////////////////////////////////////////////////////////////////////
+external function XPathCheckXML ( 
+  in universal charstring xml_doc, 
+  out charstring error_string ) 
+return boolean;
+
+
+
+}

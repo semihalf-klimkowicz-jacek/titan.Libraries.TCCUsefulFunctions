@@ -1,0 +1,910 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCPermutatedParameters_Functions.ttcn
+//  Description:        functions for permutated params
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2013-07-17
+//  Contact:            http://ttcn.ericsson.se
+//////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: TCCPermutatedParameters_Functions
+//
+//  Purpose:
+//    This module contains functions for the PermutatedParameters
+//
+//  Module Parameters:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+module TCCPermutatedParameters_Functions {
+
+import from TCCPermutatedParameters_Definitions all;
+
+import from TCCConversion_Functions all;
+import from General_Types all;
+
+//import from EPTF_CLL_Common_Definitions all; //Charstrings
+//import from EPTF_CLL_CLI_Functions all; //f_my_splitString()
+private function f_my_splitString(
+  in charstring pl_string,
+  in charstring pl_separator := " \t",
+  in boolean pl_multipleSeparators := true
+) return Charstrings {
+  var Charstrings vl_result := {};
+  var charstring vl_everything := "(*)";
+  var charstring vl_separatorNumber := "(,)";
+  if (not pl_multipleSeparators) {
+    vl_separatorNumber := "(,1)";
+  }
+  var charstring vl_separatorRegexp := "["&pl_separator&"]#"&vl_separatorNumber;
+  var charstring vl_anyWordRegexp := "([^"&pl_separator&"]#(,))"; // can be "" also
+  for(
+    var charstring vl_currentString := regexp(pl_string,vl_separatorRegexp&vl_everything&vl_separatorRegexp,0);
+    vl_currentString != "";
+    vl_currentString := regexp(vl_currentString,vl_anyWordRegexp&vl_separatorRegexp&vl_everything,1)) {
+     vl_result[sizeof(vl_result)] := regexp(vl_currentString,vl_anyWordRegexp&vl_separatorRegexp&vl_everything,0);
+  }
+  return vl_result;
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_getPermutatedParams
+// 
+//  Purpose:
+//    Returns a parameter set calculated from the index of the permutation.
+//    The values of the parameters are composed into the prefix field.
+//
+//  Parameters:
+//    - pl_permutationIdx - *in* *integer* - requested permutation index
+//    - pl_paramTypes - *in* *Charstrings* - types of the parameters
+//    - pl_assignmentList - *in* *PP_ParamSet* - assignment list
+//
+//  Return Value:
+//    *PP_ParamSet* - parameter set calculated for the permutation index
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//    -
+//
+///////////////////////////////////////////////////////////
+// no HashMap or other booster is used, function could be enhanced to store intermittent results
+public function f_PP_getPermutatedParams(
+  in integer pl_permutationIdx,
+  in Charstrings pl_paramTypes,
+  in PP_ParamSet pl_assignmentList
+) return PP_ParamSet {
+
+  var Integers vl_TypesCount;
+  f_PP_calculateTypeCounts(pl_paramTypes, pl_assignmentList, vl_TypesCount);
+
+  var Integers vl_currentPermutationIdxs;
+  f_PP_getPermutationIndexList(pl_permutationIdx, vl_TypesCount, vl_currentPermutationIdxs);
+
+  var PP_ParamSet vl_ret := {};
+
+  var integer vl_iLoopEnd := sizeof(pl_paramTypes);
+  var integer vl_jLoopEnd := sizeof(pl_assignmentList);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+
+    for(var integer j := 0; j < vl_jLoopEnd; j := j + 1) {
+
+      if(f_PP_charListContains(pl_paramTypes[i], pl_assignmentList[j].types)
+        and (vl_currentPermutationIdxs[i] >= 0)) {
+
+        f_PP_getInRangeValue(pl_assignmentList[j], vl_currentPermutationIdxs[i], vl_ret);
+
+      }
+    }
+  }
+
+  return vl_ret;
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_getInRangeValue
+// 
+//  Purpose:
+//    Calculates a single value of a parameter value range,
+//    and appends it to the paramSet.
+//
+//  Parameters:
+//    - pl_param - *in* *PP_SingleParam* - parameter from which the value is calculated
+//    - pl_permutationIdx - *in* *integer* - requested permutation index
+//    - pl_paramSet - *in* *PP_ParamSet* - paramSet which to append the value
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//    -
+//
+///////////////////////////////////////////////////////////
+private function f_PP_getInRangeValue(
+  in PP_SingleParam pl_param,
+  in integer pl_permutationIdx,
+  inout PP_ParamSet pl_paramSet
+) {
+  var integer vl_typeCount := 0;
+
+  // count each range; if the selected value is within the range, then put it into the ParamSet
+  var integer vl_iLoopEnd := sizeof(pl_param.values);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+
+    if(vl_typeCount + pl_param.values[i].rangeMax - pl_param.values[i].rangeMin < pl_permutationIdx) {
+
+      vl_typeCount := vl_typeCount + pl_param.values[i].rangeMax - pl_param.values[i].rangeMin + 1;
+
+    } else {
+
+      pl_paramSet[sizeof(pl_paramSet)] := {
+        types := { pl_param.types[0] }, // normalized parameters have only one type
+        values := {
+          {
+            prefix := f_PP_getValueFromRange(
+              pl_param.values[i],
+              pl_permutationIdx - vl_typeCount),
+            rangeMin := -1,
+            rangeMax := -1
+          }
+        }
+      }
+
+      break;
+    }
+  }
+
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_getPermutationIndexList
+// 
+//  Purpose:
+//    Returns a list of indexes, calculated from the permutationIdx,
+//    which point to a value element in each parameter type.
+//
+//  Parameters:
+//    - pl_permutationIdx - *in* *integer* - requested permutation index
+//    - pl_TypesCount - *in* *Integers* - count of values in each type
+//    - pl_currentPermutationIdxs - *out* *Integers* - value indexes
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//    -
+//
+///////////////////////////////////////////////////////////
+private function f_PP_getPermutationIndexList(in integer pl_permutationIdx, in Integers pl_TypesCount, out Integers pl_currentPermutationIdxs) {
+
+  pl_currentPermutationIdxs := {};
+
+  var integer vl_permutationsBelow;
+  var integer vl_remainder := pl_permutationIdx;
+
+  var integer vl_typesCount := sizeof(pl_TypesCount);
+  for(var integer i := 0; i < vl_typesCount; i := i + 1) {
+
+    if(pl_TypesCount[i] != 0) {
+
+      vl_permutationsBelow := 1;
+
+      for(var integer j := i + 1; j < vl_typesCount; j := j + 1) {
+        if(pl_TypesCount[i] != 0) {
+          vl_permutationsBelow := vl_permutationsBelow * pl_TypesCount[j];
+        }
+      }
+
+      if(vl_permutationsBelow > 0) {
+
+        pl_currentPermutationIdxs[sizeof(pl_currentPermutationIdxs)] := vl_remainder / vl_permutationsBelow;
+        vl_remainder := vl_remainder - (pl_currentPermutationIdxs[sizeof(pl_currentPermutationIdxs) - 1] * vl_permutationsBelow);
+
+      } else {
+        pl_currentPermutationIdxs[sizeof(pl_currentPermutationIdxs)] := 0;
+      }
+
+    } else {
+      pl_currentPermutationIdxs[sizeof(pl_currentPermutationIdxs)] := -1;
+    }
+
+  }
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_countPermutations
+// 
+//  Purpose:
+//    Calculates the permutations of the parameters, filtered by types.
+//    Permutations is calculated by multiplying the number of parameters
+//    belonging to different types.
+//
+//  Parameters:
+//    - pl_paramTypes - *in* *Charstrings* - types of the parameters
+//    - pl_assignmentList - *in* *PP_ParamSet* - assignment list
+//
+//  Return Value:
+//    *integer* - number of permutations
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//    -
+//
+///////////////////////////////////////////////////////////
+public function f_PP_countPermutations(
+  in Charstrings pl_paramTypes,
+  in PP_ParamSet pl_assignmentList
+) return integer {
+
+  var Integers vl_TypesCount := {};
+
+  f_PP_calculateTypeCounts(pl_paramTypes, pl_assignmentList, vl_TypesCount);
+
+  var charstring vl_multiplication := "";
+  var integer vl_permutations := 1;
+  var integer vl_iLoopEnd := sizeof(vl_TypesCount);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+    // If any of the types has 0 count, then the number of permutations will be 0.
+    vl_multiplication := vl_multiplication & pl_paramTypes[i] & " x " & int2str(vl_TypesCount[i]);
+    if(i != sizeof(vl_TypesCount) - 1) { vl_multiplication := vl_multiplication & " & "; }
+    vl_permutations := vl_permutations * vl_TypesCount[i];
+  }
+  vl_multiplication := vl_multiplication & " = " & int2str(vl_permutations);
+  log("permutation count is calculated by the formula: ", vl_multiplication);
+  return vl_permutations;
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_charListContains
+// 
+//  Purpose:
+//    Returns true if the value parameter is present within the list parameter. 
+//
+//  Parameters:
+//    - pl_value - *in* *Charstrings* - value parameter
+//    - pl_list - *in* *Charstrings* - list parameter
+//
+//  Return Value:
+//    *boolean* - true if the value parameter is present within the list parameter
+//       otherwise false
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//    -
+//
+///////////////////////////////////////////////////////////
+private function f_PP_charListContains(in charstring pl_value, in Charstrings pl_list) return boolean {
+  var integer vl_iLoopEnd := sizeof(pl_list);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+    if(pl_list[i] == pl_value) {
+      return true;
+    }  
+  }
+
+  return false;
+}//f_PP_charListContains
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_countRange
+// 
+//  Purpose:
+//    Function counts the number of elements
+//    defined in the value ranges of the parameter. 
+//
+//  Parameters:
+//    - pl_rangeList - *in* *PP_RangeList* - ranges
+//
+//  Return Value:
+//    *integer* - number of elements in ranges
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//    -
+//
+///////////////////////////////////////////////////////////
+private function f_PP_countRange(in PP_RangeList pl_rangeList) return integer {
+  var integer vl_result := 0;
+  var integer vl_iLoopEnd := sizeof(pl_rangeList);
+  for(var integer i:=0; i < vl_iLoopEnd; i := i + 1) {
+    vl_result := vl_result + pl_rangeList[i].rangeMax - pl_rangeList[i].rangeMin + 1;
+  }// for i
+
+  return vl_result;
+}//f_PP_countRange
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_calculateTypeCounts
+// 
+//  Purpose:
+//    Function calculates the number of values for each type. 
+//
+//  Parameters:
+//    - pl_paramTypes - *in* *Charstrings* - types of the parameters
+//    - pl_assignmentList - *in* *PP_ParamSet* - assignment list
+//    - pl_typeCounts - *out* *Integers* - value counts for each type
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//    -
+//
+///////////////////////////////////////////////////////////
+private function f_PP_calculateTypeCounts(
+  in Charstrings pl_paramTypes,
+  in PP_ParamSet pl_assignmentList,
+  out Integers pl_typeCounts
+) {
+
+  pl_typeCounts := {};
+
+  var integer vl_iLoopEnd := sizeof(pl_paramTypes);
+  var integer vl_jLoopEnd := sizeof(pl_assignmentList);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+    pl_typeCounts[i] := 0;
+
+    for(var integer j := 0; j < vl_jLoopEnd; j := j + 1) {
+      if(f_PP_charListContains(pl_paramTypes[i], pl_assignmentList[j].types)) {
+        pl_typeCounts[i] := pl_typeCounts[i] + f_PP_countRange(pl_assignmentList[j].values);
+      }
+    } // for j
+  }// for i
+
+}//f_PP_calculateTypeCounts
+
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_divideValuesOfTypes
+// 
+//  Purpose:
+//    Function returns a portion of parameters.
+//    The portion is calculated from the portion (LGen) index
+//    and number of portions (LGens). 
+//
+//  Parameters:
+//    - pl_paramTypes - *in* *Charstrings* - types of the parameters
+//    - pl_assignmentList - *in* *PP_ParamSet* - assignment list
+//    - pl_LGenIdx - *in* *integer* - index of the portion (LGen)
+//    - pl_noOfLGens - *in* *integer* - number of portions (LGens)
+//
+//  Return Value:
+//    *PP_ParamSet* - list of parameters divided to this LGen
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//    If the size of portions would not be equal, the remainder of the
+//    portion division will be allocated to the first portion (LGen)
+//
+///////////////////////////////////////////////////////////
+// beware: no HashMap or other booster is used, function assumes that there will be only ~200 values!!! 
+public function f_PP_divideValuesOfTypes(
+  in Charstrings pl_paramTypes,
+  in PP_ParamSet pl_assignmentList,
+  in integer pl_LGenIdx,
+  in integer pl_noOfLGens) return PP_ParamSet {
+
+  var PP_ParamSet vl_values := {};
+
+  var integer vl_iLoopEnd := sizeof(pl_paramTypes);
+  var integer vl_jLoopEnd := sizeof(pl_assignmentList);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+    for(var integer j := 0; j < vl_jLoopEnd; j := j + 1) {
+
+      if(f_PP_charListContains(pl_paramTypes[i], pl_assignmentList[j].types)) {
+        f_PP_mergeValuesToParamSet(pl_paramTypes[i], pl_assignmentList[j], vl_values);
+      }
+
+    }
+  }
+
+  var integer vl_count := sizeof(vl_values);
+  var integer vl_begin, vl_end;
+  vl_begin := pl_LGenIdx * vl_count / pl_noOfLGens;
+  vl_end := (pl_LGenIdx + 1) * (vl_count / pl_noOfLGens) - 1; // bracket around division makes integer from float, which is needed!!!
+  // add the remainder to the end, so the first LGen will get the remainder of the division
+  var integer vl_remainder := vl_count - pl_noOfLGens * (vl_count / pl_noOfLGens); // bracket around division makes integer from float, which is needed!!!
+  if(pl_LGenIdx != 0) {
+    vl_begin := vl_begin + vl_remainder;
+  }
+  vl_end := vl_end + vl_remainder + 1;
+
+  var PP_ParamSet vl_divided := {};
+
+  for(var integer i := vl_begin; i < vl_end; i := i + 1) {
+    vl_divided[sizeof(vl_divided)] := vl_values[i];
+  }
+
+  return vl_divided;
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_mergeValuesToParamSet
+// 
+//  Purpose:
+//    Function merge a parameter's values to a ParamSet, one by one. 
+//
+//  Parameters:
+//    - pl_type - *in* *charstring* - parameter type to merge
+//        type index points to a type within the pl_param's types
+//    - pl_param - *in* *PP_SingleParam* - parameter to merge
+//    - pl_values - *inout* *PP_ParamSet* - parameter values will
+//        be merged with pl_values
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//    Example:
+//      parameter (type:value): 'MO_SUBS : 4700'
+//        1. merge with: 'MT_SUBS : 4700'
+//           output: 'MO_SUBS, MT_SUBS: 4700'
+//        2. merge with: 'MT_SUBS : 4701'
+//           output: 'MO_SUBS : 4700, MT_SUBS : 4701'
+//        3. merge with: 'MO_SUBS : 4700' (already in the list)
+//           output: 'MO_SUBS : 4700' (unchanged)
+//
+///////////////////////////////////////////////////////////
+private function f_PP_mergeValuesToParamSet(
+  in charstring pl_type,
+  in PP_SingleParam pl_param,
+  inout PP_ParamSet pl_values) {
+
+  var boolean vl_alreadyAdded;
+  var integer vl_elementIdx;
+  var charstring vl_currentValue;
+
+  // go through each range
+  var integer vl_iLoopEnd := sizeof(pl_param.values);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+    // add each value, if it's not already added
+    for(var integer j := 0; j < pl_param.values[i].rangeMax - pl_param.values[i].rangeMin + 1; j := j + 1) {
+
+      vl_currentValue := f_PP_getValueFromRange(pl_param.values[i], j);
+      vl_alreadyAdded := false;
+
+      for(var integer k := 0; (k < sizeof(pl_values)) and (not vl_alreadyAdded); k := k + 1) {
+        if(pl_values[k].values[0].prefix == vl_currentValue) {
+          vl_alreadyAdded := true;
+          vl_elementIdx := k;
+        }
+      }
+
+      if(not vl_alreadyAdded) {
+
+        pl_values[sizeof(pl_values)] := {
+          types := { pl_type },
+          values := {
+            {
+              prefix := vl_currentValue,
+              rangeMin := -1,
+              rangeMax := -1
+            }
+          } 
+        };
+
+      } else {
+
+        // check if the current type is already within the added types
+        vl_alreadyAdded := false;
+        for(var integer k := 0; (k < sizeof(pl_values[vl_elementIdx].types)) and (not vl_alreadyAdded); k := k + 1) {
+          if(pl_values[vl_elementIdx].types[k] == pl_type) {
+            vl_alreadyAdded := true;
+          }
+        }
+
+        if(not vl_alreadyAdded) {
+          pl_values[vl_elementIdx].types[sizeof(pl_values[vl_elementIdx].types)] := pl_type;
+        }
+
+      }
+
+    }
+
+  }
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_countValuesOfTypes
+// 
+//  Purpose:
+//    Returns the number of values present in the assignment list, filtered
+//    for the types requested
+//
+//  Parameters:
+//    - pl_paramTypes - *in* *Charstrings* - types to count
+//    - pl_assignmentList - *in* *PP_ParamSet* - assignment list
+//
+//  Return Value:
+//    *integer* - number of values assigned to the requested types
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+public function f_PP_countValuesOfTypes(
+  in Charstrings pl_paramTypes,
+  in PP_ParamSet pl_assignmentList
+) return integer {
+
+  var Charstrings vl_values := {};
+
+  var integer vl_iLoopEnd := sizeof(pl_paramTypes);
+  var integer vl_jLoopEnd := sizeof(pl_assignmentList);
+  for(var integer i := 0; i < vl_iLoopEnd; i := i + 1) {
+    for(var integer j := 0; j < vl_jLoopEnd; j := j + 1) {
+
+      if(f_PP_charListContains(pl_paramTypes[i], pl_assignmentList[j].types)) {
+
+        f_PP_mergeValuesFromRanges(pl_assignmentList[j].values, vl_values);
+
+      }
+
+    }
+  }
+
+  return sizeof(vl_values);
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_mergeValuesFromRanges
+// 
+//  Purpose:
+//    Merge the values in the given ranges.
+//    Values will be appended with the new elements of the ranges.
+//
+//  Parameters:
+//    - pl_ranges - *in* *PP_RangeList* - ranges to merge
+//    - pl_values - *inout* *Charstrings* - merged value list
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+private function f_PP_mergeValuesFromRanges(
+  in PP_RangeList pl_ranges,
+  inout Charstrings pl_values
+) {
+
+  var charstring vl_currentValue;
+  var boolean vl_alreadyAdded;
+
+  // go through each range
+  for(var integer i := 0; i < sizeof(pl_values); i := i + 1) {
+    // add each value, if it's not already added
+    for(var integer j := 0; j < pl_ranges[i].rangeMax - pl_ranges[i].rangeMin + 1; j := j + 1) {
+
+      vl_currentValue := f_PP_getValueFromRange(pl_ranges[i], j);
+      vl_alreadyAdded := false;
+
+      for(var integer k := 0; (k < sizeof(pl_values)) and (not vl_alreadyAdded); k := k + 1) {
+        if(pl_values[k] == vl_currentValue) {
+          vl_alreadyAdded := true;
+        }
+      }
+
+      if(not vl_alreadyAdded) {
+
+        pl_values[sizeof(pl_values)] := vl_currentValue;
+
+      }
+
+    }
+
+  }
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_getValueFromRange
+// 
+//  Purpose:
+//    Returns an exact value from the range.
+//
+//  Parameters:
+//    - pl_range - *in* *PP_Range* - the range
+//    - pl_rangeIdx - *in* *integer* - the index (offset) within the range
+//
+//  Return Value:
+//    *charstring* - exact parameter value (prefix + range index) from the range
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+public function f_PP_getValueFromRange(in PP_Range pl_range, in integer pl_rangeIdx) return charstring {
+  var charstring vl_ret;
+
+  // if this is a real range
+  if(pl_range.rangeMin < pl_range.rangeMax) {
+
+    if(pl_range.rangeMin + pl_rangeIdx <= pl_range.rangeMax) {
+
+      vl_ret := int2str(pl_range.rangeMin + pl_rangeIdx);
+
+      var integer vl_rangeStrLength := lengthof(int2str(pl_range.rangeMax));
+      // prepend with 0s to reach the rangeMax's length
+      while(lengthof(vl_ret) < vl_rangeStrLength) {
+        vl_ret := "0" & vl_ret;
+      }
+
+    } else {
+      log("Index: ", pl_rangeIdx, " is outside the range of: " , pl_range, "; PREPARE TO CRASH!!!");
+      return "";
+    }
+  }
+  // otherwise this is a single value
+  else {
+    return pl_range.prefix;
+  }
+
+  return pl_range.prefix & vl_ret;
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_normalizeParams
+// 
+//  Purpose:
+//    Converts the parameter assignments to a 'normalized' list.
+//    The normalized list contains exactly one PP_SingleParam per parameter type.
+//
+//  Parameters:
+//    - pl_assignmentList - *in* *PP_ParameterAssignmentList* - the assignment list to convert
+//    - pl_normalizedParams - *out* *PP_ParamSet* - the converted parameters.
+//        New parameters are appended to the end of the list.
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//  Conversion algorithm:
+//
+//  Go through the pl_assignmentList
+//    Go through type fields of each pl_assignmentList
+//      Go through the current pl_normalizedParams
+//        If pl_normalizedParams already contains the type in the pl_assignmentList, then append the
+//          value (ranges) of the current pl_assignmentList to the pl_normalizedParams's found element
+//        Else append a new element to the pl_normalizedParams, and assign the value (ranges) of the
+//          current pl_assignmentList to it
+//    
+///////////////////////////////////////////////////////////
+public function f_PP_normalizeParams(in PP_ParameterAssignmentList pl_assignmentList, out PP_ParamSet pl_normalizedParams) {
+
+  pl_normalizedParams := {};
+
+  var Charstrings vl_paramTypes;
+  var PP_RangeList vl_rangeList;
+  var integer vl_paramIdx;
+
+  var integer vl_sizeof_assignmentList := sizeof(pl_assignmentList);
+  var integer vl_sizeof_paramTypes := 0;
+
+  for(var integer i := 0; i < vl_sizeof_assignmentList; i := i + 1) {
+
+    vl_paramTypes := f_my_splitString(pl_assignmentList[i].typeField, ",", true);
+    vl_sizeof_paramTypes := sizeof(vl_paramTypes);
+
+    // go through the existing unwrappedParams, and check if we already have this type
+    for(var integer j := 0; j < vl_sizeof_paramTypes; j := j + 1) {
+
+      vl_paramIdx := -1;
+
+      for(var integer k := 0; (k < sizeof(pl_normalizedParams)) and (vl_paramIdx == -1); k := k + 1) {
+
+        if(pl_normalizedParams[k].types[0] == f_stripWhitespaces(vl_paramTypes[j])) {
+
+          vl_paramIdx := k;
+
+        }
+
+      }
+
+      // allocate new unwrappedParam if needed
+      if(vl_paramIdx == -1) {
+        vl_paramIdx := sizeof(pl_normalizedParams);
+        pl_normalizedParams[vl_paramIdx] := { { f_stripWhitespaces(vl_paramTypes[j]) }, {} };
+      }
+
+      f_PP_convertToRangeList(pl_assignmentList[i].valueField, vl_rangeList);
+
+      pl_normalizedParams[vl_paramIdx].types := { f_stripWhitespaces(vl_paramTypes[j]) }
+      pl_normalizedParams[vl_paramIdx].values := pl_normalizedParams[vl_paramIdx].values & vl_rangeList;
+
+    }
+  }
+
+}
+
+///////////////////////////////////////////////////////////
+//  Function: f_PP_convertToRangeList
+// 
+//  Purpose:
+//    Converts a string to a PP_RangeList.
+//    The first parameter is a string, which contains value(s) of parameter(s).
+//
+//  Parameters:
+//    - pl_rangeListStr - *in* *charstring* - the string to convert
+//    - pl_rangeList - *out* *PP_RangeList* - the converted RangeList
+//
+//  Return Value:
+//    -
+//
+//  Errors & assertions:
+//    - 
+//
+//  Detailed Comments:
+//
+//  Conversion algorithm:
+//    The string is split by commas, to determine a list of values
+//    Each comma separated element is split by dashes, to determine ranges
+//    If there was no dash, then add the element as simple value (prefix only) to the ranges
+//    If there was 1 dash, then
+//      Extract the prefix (common characters) from the range begin and range end
+//      If the range begin and range end are integer, then
+//        Swap them, if the range begin is bigger than range end
+//        Add the element as a range (prefix, rangeMin and rangeMax) to the ranges
+//    If there were more dashes (like in 2013-05-28), then add the element (prefix only) as simple value to the ranges
+//
+///////////////////////////////////////////////////////////
+private function f_PP_convertToRangeList(in charstring pl_rangeListStr, out PP_RangeList pl_rangeList) {
+
+  pl_rangeList := {};
+
+  var Charstrings vl_commaSeparated := f_my_splitString(pl_rangeListStr,",", true);
+  var Charstrings vl_dashSeparated := {};
+  var charstring vl_rangeLimit;
+
+  var integer vl_sizeof_commaSeparated := sizeof(vl_commaSeparated);
+  var integer vl_sizeof_dashSeparated;
+  for(var integer vl_i := 0; vl_i < vl_sizeof_commaSeparated; vl_i := vl_i + 1) {
+
+    vl_dashSeparated := f_my_splitString(vl_commaSeparated[vl_i],"-", true);
+    vl_sizeof_dashSeparated := sizeof(vl_dashSeparated);
+    for(var integer vl_j := 0; vl_j < vl_sizeof_dashSeparated; vl_j := vl_j + 1) {
+      vl_dashSeparated[vl_j] := f_stripWhitespaces(vl_dashSeparated[vl_j]);
+    }
+
+    select (sizeof(vl_dashSeparated)) {
+
+      case (1) {
+        pl_rangeList[sizeof(pl_rangeList)] := { vl_dashSeparated[0], 0, 0 };
+      }
+      case (2) {
+
+        var integer vl_newValueIdx := sizeof(pl_rangeList);
+        pl_rangeList[vl_newValueIdx].prefix := "";
+
+        // calculate the prefix, and store it
+        var integer vl_prefixIdx := 0;
+        var integer vl_lengthof_dashSeparated0 := lengthof(vl_dashSeparated[0]);
+        var integer vl_lengthof_dashSeparated1 := lengthof(vl_dashSeparated[1]);
+        while((vl_prefixIdx < vl_lengthof_dashSeparated0) and (vl_prefixIdx < vl_lengthof_dashSeparated1) and
+          (vl_dashSeparated[0][vl_prefixIdx] == vl_dashSeparated[1][vl_prefixIdx])) {
+          pl_rangeList[vl_newValueIdx].prefix := pl_rangeList[vl_newValueIdx].prefix & vl_dashSeparated[0][vl_prefixIdx];
+          vl_prefixIdx := vl_prefixIdx + 1;
+        }
+
+        pl_rangeList[vl_newValueIdx].prefix := f_stripWhitespaces(pl_rangeList[vl_newValueIdx].prefix);
+        vl_rangeLimit := f_stripWhitespaces(substr(vl_dashSeparated[0], vl_prefixIdx, lengthof(vl_dashSeparated[0]) - vl_prefixIdx));
+        if(f_isInteger(vl_rangeLimit)) {
+          pl_rangeList[vl_newValueIdx].rangeMin := f_str2int(vl_rangeLimit);
+        }
+        vl_rangeLimit := f_stripWhitespaces(substr(vl_dashSeparated[1], vl_prefixIdx, lengthof(vl_dashSeparated[1]) - vl_prefixIdx));
+        if(f_isInteger(vl_rangeLimit)) {
+          pl_rangeList[vl_newValueIdx].rangeMax := f_str2int(vl_rangeLimit);
+        }
+
+        if((pl_rangeList[vl_newValueIdx].rangeMin == -1) or (pl_rangeList[vl_newValueIdx].rangeMax == -1)) {
+          log("error: ranges do not end in numbers");
+        }
+
+
+        // replace rangeMin and rangeMax if user set the max lower than min
+        if(pl_rangeList[vl_newValueIdx].rangeMax < pl_rangeList[vl_newValueIdx].rangeMin) {
+          var integer vl_temp := pl_rangeList[vl_newValueIdx].rangeMin;
+          pl_rangeList[vl_newValueIdx].rangeMin := pl_rangeList[vl_newValueIdx].rangeMax;
+          pl_rangeList[vl_newValueIdx].rangeMax := vl_temp;
+        }
+      }
+      case else {
+
+        // consider it as single value
+        vl_commaSeparated[vl_i] := f_stripWhitespaces(vl_commaSeparated[vl_i]);
+        pl_rangeList[sizeof(pl_rangeList)] := { vl_commaSeparated[vl_i], 0, 0 };
+      }
+    }
+  }
+
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//  Function: f_PP_getParamValueFromSet()
+// 
+//  Purpose:
+//    Function to return parameter value if parameter types matches one of the given types
+// 
+//  Parameters:
+//    pl_paramSet - *in* *PP_ParamSet* - ParamSet to examine
+//    pl_typeList - *in* *PP_StringList* - typeList to search in the pl_paramSet
+//
+//  Return Value:
+//    *PP_StringList* - empty list, if none of the types are found in the pl_paramSet
+// 
+//  Errors:
+//    -
+// 
+//  Detailed Comments:
+//    
+///////////////////////////////////////////////////////////////////////////////
+public function f_PP_getParamValueFromSet(
+  in PP_ParamSet pl_paramSet,
+  in Charstrings pl_typeList
+) return Charstrings {
+  var Charstrings vl_ret := {};
+  var integer vl_i, vl_j;
+
+  var integer vl_sizeof_paramSet := sizeof(pl_paramSet);
+  var integer vl_sizeof_typeList := sizeof(pl_typeList);
+  for (vl_i := 0; vl_i < vl_sizeof_paramSet; vl_i := vl_i + 1) {
+    for (vl_j := 0; vl_j < vl_sizeof_typeList; vl_j := vl_j + 1) {
+
+      // assert there is only one type here!
+      if(pl_paramSet[vl_i].types[0] == pl_typeList[vl_j]) {
+        // assert there is only one value here!
+        vl_ret[sizeof(vl_ret)] := pl_paramSet[vl_i].values[0].prefix;
+        vl_j := sizeof(pl_typeList);
+      }
+
+    }
+  }
+  return vl_ret;
+}
+
+} with { extension "version R22B"}

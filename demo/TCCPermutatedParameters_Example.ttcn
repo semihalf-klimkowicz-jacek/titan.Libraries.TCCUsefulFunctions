@@ -1,0 +1,68 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+
+module TCCPermutatedParameters_Example {
+
+import from TCCPermutatedParameters_Definitions all;
+import from TCCPermutatedParameters_Functions all;
+
+type component MAIN_CT {};
+
+testcase tc_001_getPermutatedParams() runs on MAIN_CT {
+  var PP_ParamSet vl_assignmentList := {
+    {
+      types := { "type1" },
+      values := { { prefix := "", rangeMin := 0, rangeMax := 1 } }
+    },
+    {
+      types := { "type2" },
+      values := { { prefix := "", rangeMin := 0, rangeMax := 2 } }
+    },
+    {
+      types := { "type3" },
+      values := { { prefix := "", rangeMin := 0, rangeMax := 3 } }
+    }
+  }
+
+  setverdict(pass);
+  var PP_ParamSet vl_referenceParamSet := {};
+  var integer vl_permutationIdx := 0;
+  for(var integer i := 0; i < (vl_assignmentList[0].values[0].rangeMax - vl_assignmentList[0].values[0].rangeMin + 1); i := i + 1) {
+    for(var integer j := 0; j < (vl_assignmentList[1].values[0].rangeMax - vl_assignmentList[1].values[0].rangeMin + 1); j := j + 1) {
+      for(var integer k := 0; k < (vl_assignmentList[2].values[0].rangeMax - vl_assignmentList[2].values[0].rangeMin + 1); k := k + 1) {
+
+        /*log("permutation #", vl_permutationIdx, ": ",
+          f_PP_getPermutatedParams(
+            vl_permutationIdx,
+            { vl_assignmentList[0].types[0], vl_assignmentList[1].types[0], vl_assignmentList[2].types[0] },
+            vl_assignmentList)
+        );*/
+        vl_referenceParamSet := {
+          { types := { vl_assignmentList[0].types[0] }, values := { { prefix := int2str(i), rangeMin := -1, rangeMax := -1 } } },
+          { types := { vl_assignmentList[1].types[0] }, values := { { prefix := int2str(j), rangeMin := -1, rangeMax := -1 } } },
+          { types := { vl_assignmentList[2].types[0] }, values := { { prefix := int2str(k), rangeMin := -1, rangeMax := -1 } } } 
+        }
+        if(f_PP_getPermutatedParams(
+            vl_permutationIdx,
+            { vl_assignmentList[0].types[0], vl_assignmentList[1].types[0], vl_assignmentList[2].types[0] },
+            vl_assignmentList) != vl_referenceParamSet) {
+          setverdict(fail);
+        }
+        vl_permutationIdx := vl_permutationIdx + 1;
+      }
+    }    
+  }
+}
+
+
+control {
+  execute(tc_001_getPermutatedParams());
+}
+
+}

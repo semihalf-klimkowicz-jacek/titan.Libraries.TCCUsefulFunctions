@@ -1,0 +1,155 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCEncoding_Example.ttcn
+//  Description:        TCC Useful Functions: Message Encoding Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2013-02-05
+//  Contact:            http://ttcn.ericsson.se
+//////////////////////////////////////////////////////////////////////////////
+
+module TCCEncoding_Example {
+
+import from TCCEncoding_Functions all;
+
+type component test_CT {
+  var charstring base64;
+  var octetstring msg, dec;
+}
+
+testcase TC() runs on test_CT {
+  msg := char2oct("Test message.");
+  log("Message is: ", msg);
+  base64 := enc_MIME_Base64(msg);
+  log("MIME Base64 encoded message is: ", base64);
+  dec := dec_MIME_Base64(base64);
+  log("Decoded message is: ", dec);
+  if(dec != msg) {
+    setverdict(fail);
+  } else {
+    setverdict(pass);
+  }
+}
+
+testcase TC2() runs on test_CT {
+
+  var ISUP_Called_Party_Number v_ISUP_Called_Party_Number := 
+  {  
+    natureOfAddressIndicator := networkRoutingNumberNationalNrFormat,
+    numberingPlanIndicator := ISDN_E_164,
+    iNN := numberComplete,
+    addressSignalDigits := '123456789'H 
+  }
+
+  var octetstring v_oct := f_encode_ISUP_Called_Party_Number(v_ISUP_Called_Party_Number)
+  log(v_oct);
+  if (v_oct == '86102143658709'O) {setverdict(pass)} 
+  else {setverdict(fail)}
+
+  v_ISUP_Called_Party_Number.numberingPlanIndicator := national; 
+  v_oct := f_encode_ISUP_Called_Party_Number(v_ISUP_Called_Party_Number);
+  log(v_oct);
+  if (v_oct == ''O) {setverdict(pass)} 
+  else {setverdict(fail)}
+
+  v_ISUP_Called_Party_Number.natureOfAddressIndicator := internationalNumber;
+  v_ISUP_Called_Party_Number.numberingPlanIndicator := telex;
+  v_ISUP_Called_Party_Number.iNN := numberIncomplete;
+  v_ISUP_Called_Party_Number.addressSignalDigits :='1234567895'H
+
+  v_oct := f_encode_ISUP_Called_Party_Number(v_ISUP_Called_Party_Number)
+  log(v_oct);
+  if (v_oct == '04C02143658759'O) {setverdict(pass)} 
+  else {setverdict(fail)} 
+
+}
+
+testcase TC3() runs on test_CT {
+
+  var ISUP_Calling_Party_Number v_ISUP_Calling_Party_Number := 
+  {  
+    natureOfAddressIndicator := internationalNumber,
+    screening_indicator := network_provided,
+    address_presentation_restricted_indicator := presentation_restricted,
+    numberingPlanIndicator := ISDN_E_164,
+    iNN := numberComplete,
+    addressSignalDigits := '123456789'H 
+  }
+
+  var octetstring v_oct := f_encode_ISUP_Calling_Party_Number(v_ISUP_Calling_Party_Number)
+  log(v_oct);
+  if (v_oct == '84172143658709'O) {setverdict(pass)} 
+  else {setverdict(fail)}
+
+  v_ISUP_Calling_Party_Number.addressSignalDigits :='1234567895'H
+  v_oct := f_encode_ISUP_Calling_Party_Number(v_ISUP_Calling_Party_Number) 
+  log(v_oct);
+  if (v_oct == '04172143658759'O) {setverdict(pass)} 
+  else {setverdict(fail)} 
+}
+
+testcase TC4() runs on test_CT {
+
+  var MobileL3_CalledPartyBCDNumber v_MobileL3_CalledPartyBCDNumber:=
+  {
+    numberingPlanIdentification := data,
+    typeOfNumber := dedicatedAccess,
+    numberDigits := '123456789'H
+  }
+
+  var octetstring v_oct :=f_encode_MobileL3_CalledPartyBCDNumber(v_MobileL3_CalledPartyBCDNumber);
+  log(v_oct);
+  if (v_oct == 'C321436587F9'O) {setverdict(pass)} 
+  else {setverdict(fail)}
+
+
+  v_MobileL3_CalledPartyBCDNumber.numberDigits := '1234567895'H
+  v_oct :=f_encode_MobileL3_CalledPartyBCDNumber(v_MobileL3_CalledPartyBCDNumber);
+  log(v_oct);
+  if (v_oct == 'C32143658759'O) {setverdict(pass)} 
+  else {setverdict(fail)}
+
+}
+
+testcase tc_005_artf265694() runs on test_CT {
+
+  var hexstring vl_number_odd  := '123456789AB'H;
+  var hexstring vl_number_even := '123456789ABC'H;
+
+  var octetstring vl_oct := f_enc_TBCD_hex(vl_number_odd);
+  if (vl_oct == '21436587A9FB'O) {setverdict(pass);} 
+  else {
+    log("reference: ", '21436587A9FB'O);
+    log("encoded: ", vl_oct);
+    setverdict(fail);
+  }
+
+  vl_oct := f_enc_TBCD_hex(vl_number_even);
+  if (vl_oct == '21436587A9CB'O) {setverdict(pass);} 
+  else {
+    log("reference: ", '21436587A9CB'O);
+    log("encoded: ", vl_oct);
+    setverdict(fail);
+  }
+
+}
+
+
+control {
+  execute(TC());
+  execute(TC2());
+  execute(TC3());  
+  execute(TC4());   
+  execute(tc_005_artf265694());   
+}
+
+} with {extension "version R22B"}
+

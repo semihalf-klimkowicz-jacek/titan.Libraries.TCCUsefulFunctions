@@ -1,0 +1,61 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCAssertion_Functions.ttcn
+//  Description:        TCC Useful Functions: Assert Functions
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2007-11-12
+//  Contact:            http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: TCCAssertion_Functions
+// 
+//  Purpose:
+//    This module supports assertion handling
+// 
+//  Module Parameters:
+//      - 
+// 
+//  Module depends on:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+module TCCAssertion_Functions {
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_assert
+// 
+//  Purpose:
+//    Implement TTCN assertion. 
+//
+//  Parameters:
+//    pl_assertMessage - *in* *charstring* - assertion message
+//    pl_predicate - *in* *boolean* - boolean predicate
+// 
+//  Return Value:
+//    -
+//
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    At the point of this function call, the assertion predicate must be true,
+//    else assertion fails that results in a dynamic test case error
+//    To use assertion optimized build shall be switched on with switch -O2 and
+//    NDEBUG shall not be defined
+// 
+///////////////////////////////////////////////////////////////////////////////
+external function f_assert(charstring pl_assertMessage, boolean pl_predicate);
+
+}

@@ -1,0 +1,253 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCConversion_Example.ttcn
+//  Description:        TCC Useful Functions: Conversion Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2013-09-24
+//  Contact:            http://ttcn.ericsson.se
+///////////////////////////////////////////////
+
+module TCCConversion_Example
+{
+
+import from TCCConversion_Functions all;
+
+type component Conversion_CT
+{
+  // conversion
+  var octetstring base := int2oct(3,  1);
+  var octetstring delta := int2oct(7, 1);
+  var octetstring result;
+  
+  var charstring tw := "tWiNKy WINkY";
+  var charstring replacestr := "AaACCCAaABbB";
+
+  var charstring twLo := "twinky winky";
+  var charstring twUp := "TWINKY WINKY";
+
+  var charstring rStr1 := "DdDCCCAaABbB";
+  var charstring rStr2 := "DdDCCCDdDBbB";
+  var charstring rStr3 := "<3A>CCCAaABbB";
+  var charstring rStr4 := "<3A>CCC<3A>BbB";
+
+  var charstring tmpStr;
+
+  var integer tmpInt;
+  var integer octAdd := 10;
+  var integer octSub := 252; // no negative numbers
+  var integer octComp := 2; // second is greater
+}
+
+//////////////////////////////////////////////////////////////
+// Conversion functions
+//////////////////////////////////////////////////////////////
+
+// test f_putInUppercase testcase
+testcase f_test_uppercase() runs on Conversion_CT
+{ 
+  log(" ----------- f_putInUppercase ----------- ");
+  tmpStr := f_putInUppercase(tw);
+  log(tw, " to uppercase: ", tmpStr);
+  
+  if (tmpStr == twUp) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_putInLowercase testcase
+testcase f_test_lowercase() runs on Conversion_CT
+{
+  log(" ----------- f_putInLowercase ----------- ");
+  tmpStr := f_putInLowercase(tw);
+  log(tw, " to lowercase: ", tmpStr); 
+
+  if (tmpStr == twLo) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test unichar2charstr conversion and backwards
+testcase f_test_uniconv() runs on Conversion_CT
+{
+  log(" ----------- f_unichar2charstr/f_charstr2unichar ----------- ");
+  log("Original string: ", tw);
+  log("Converted to unichar: ", f_charstr2unichar(tw));
+  tmpStr := f_unichar2charstr(f_charstr2unichar(tw));
+  log("Converted back to charstring: ", tmpStr);
+
+  // only backward conversion check
+  if (tw == tmpStr)  { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_replaceFirstOccurenceOfSubstring testcase
+testcase f_test_replacefirstoccuranceofstring() runs on Conversion_CT
+{
+  log(" ----------- f_replaceFirstOccurenceOfSubstring ----------- ");
+  log("Original string: ", replacestr);
+  tmpStr := 
+    f_replaceFirstOccurenceOfSubstring(replacestr, "AaA", "DdD");
+  log("Replace first occurence of AaA to DdD: ", tmpStr);
+
+  if (tmpStr == rStr1)  { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_replaceFirstOccurenceOfSubstring testcase
+testcase f_test_replaceeveryoccurenceofsubstring() runs on Conversion_CT
+{
+  log(" ----------- f_replaceEveryOccurenceOfSubstring ----------- ");
+  log("Original string: ", replacestr);
+  tmpStr := 
+    f_replaceEveryOccurenceOfSubstring(replacestr, "AaA", "DdD");
+  log("Replace every occurence of AaA to DdD: ", tmpStr); 
+
+  if (tmpStr == rStr2)  { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+testcase f_test_HM83229() runs on Conversion_CT
+{
+  var charstring ch:= "sip:annc@192.168.73.1:5068;play=http:%2F%2FextMrfc.ericsson.com%2Fplay%2F1";
+  log(" ----------- f_test_HM83229 ----------- ");
+  log("Original string: ", ch);
+  tmpStr := 
+    f_replaceEveryOccurenceOfSubstring(replacestr, "%2F", "/");
+  log("Replace every occurence of %2F to /: ", tmpStr); 
+
+  if (tmpStr == "sip:annc@192.168.73.1:5068;play=http://extMrfc.ericsson.com/play/1")  { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+
+// test f_replaceFirstOccurenceOfSubstring testcase
+testcase f_test_replacefirstoccuranceofpattern() runs on Conversion_CT
+{
+  log(" ----------- f_replaceFirstOccurenceOfPattern ----------- ");
+  log("Original string: ", replacestr);
+  tmpStr := 
+    f_replaceFirstOccurenceOfPattern(replacestr, "*([Aa]#(3,3))*", "<3A>");
+  log("Replace first occurence of *([Aa]#(3,3))* to <3A>: ", tmpStr);
+
+  if (tmpStr == rStr3)  { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_replaceFirstOccurenceOfSubstring testcase
+testcase f_test_replaceeverytoccuranceofpattern() runs on Conversion_CT
+{
+  log(" ----------- f_replaceEveryOccurenceOfPattern ----------- ");
+  log("Original string: ", replacestr);
+  tmpStr := 
+    f_replaceEveryOccurenceOfPattern(replacestr, "*([Aa]#(3,3))*", "<3A>");
+  log("Replace every occurence of *([Aa]#(3,3))* to <3A>: ", tmpStr); 
+
+  if (tmpStr == rStr4)  { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_addOctetstring testcase
+testcase f_test_addOctetstring() runs on Conversion_CT
+{
+  log("----------- f_addOctetstring() ---------");
+  result := f_addOctetstring(base, delta);
+  log(" result = ", result);
+  tmpInt := oct2int(result)
+  log(" int result = ", tmpInt);   
+
+  if (tmpInt == octAdd) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_subOctetstring testcase
+testcase f_test_subOctetstring() runs on Conversion_CT
+{
+  log("----------- f_subOctetstring() --------");
+  result := f_subOctetstring(base, delta);
+  log(" result = ", result);
+  tmpInt := oct2int(result);
+  log(" int result = ", tmpInt);   
+
+  if (tmpInt == octSub) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_compOctetstring testcase
+testcase f_test_compOctetstring() runs on Conversion_CT
+{
+  log("----------- f_compOctetstring() --------");
+  tmpInt := f_compOctetstring(base, delta);
+  log(" result_int = ", tmpInt);   
+
+  if (tmpInt == octComp) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_IPv6CreateLiteral testcase 
+testcase f_test_IPv6CreateLiteral() runs on Conversion_CT
+{
+  log("----------- f_IPv6CreateLiteral() --------");
+  var charstring v_IPv6Address := "3ffe:1900:4545:3:200:f8ff:fe21:67cf";
+  var charstring v_IPv6Address_Literal := f_IPv6CreateLiteral(v_IPv6Address);
+  
+  if (v_IPv6Address_Literal == ("[" & v_IPv6Address  & "]")) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+testcase f_test_isWhitespace() runs on Conversion_CT
+{
+  log("----------- f_isWhiteSpace() ----------");
+  var charstring v_whitespace1 := " ";
+  var charstring v_whitespace2 := "\n \t \r";
+  var charstring v_emptystring := "";
+  var charstring v_notwhitespace := "notwhitespace";
+  
+  if (f_isWhiteSpace(v_whitespace1)) { setverdict(pass); }
+  else { setverdict(fail); }
+  
+  if (f_isWhiteSpace(v_whitespace2)) { setverdict(pass); }
+  else { setverdict(fail); }
+  
+  if (f_isWhiteSpace(v_emptystring)) { setverdict(fail); }
+  else { setverdict(pass); }
+  
+  if (f_isWhiteSpace(v_notwhitespace)) { setverdict(fail); }
+  else { setverdict(pass); }
+  
+}
+
+
+
+// execute all conversion tests
+control
+{
+  log(" ################### Conversion ################### ");
+
+  execute(f_test_uppercase());
+  execute(f_test_lowercase());
+  execute(f_test_uniconv());
+  execute(f_test_replacefirstoccuranceofstring());
+  execute(f_test_replaceeveryoccurenceofsubstring());
+  execute(f_test_HM83229());
+  execute(f_test_replacefirstoccuranceofpattern());
+  execute(f_test_replaceeverytoccuranceofpattern());
+
+  execute(f_test_addOctetstring());
+  execute(f_test_subOctetstring());
+  execute(f_test_compOctetstring());
+  execute(f_test_IPv6CreateLiteral());
+  execute(f_test_isWhitespace());
+}
+
+}//end of module
+with {
+extension "version R22B"
+}
+

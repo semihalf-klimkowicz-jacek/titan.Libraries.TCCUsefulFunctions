@@ -1,0 +1,101 @@
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Copyright Test Competence Center (TCC) ETH 2013                           //
+//                                                                           //
+// The copyright to the computer  program(s) herein  is the property of TCC. //
+// The program(s) may be used and/or copied only with the written permission //
+// of TCC or in accordance with  the terms and conditions  stipulated in the //
+// agreement/contract under which the program(s) have been supplied          //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCMessageHandling_Example.ttcn
+//  Description:        TCC Useful Functions: Message Handling Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2013-03-28
+//  Contact:            http://ttcn.ericsson.se
+///////////////////////////////////////////////
+module TCCMessageHandling_Example 
+{
+import from TCCMessageHandling_Functions all;
+
+type component Test_CT{}
+
+
+testcase tc_1() runs on Test_CT
+  { 
+    // COMPLETE TLV , SHORT FORM
+    var octetstring vl_oct := '301802010004067075626C6963A00B0201050201010201013000'O     
+    var integer vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if(lengthof(vl_oct) == vl_int) {setverdict(pass)} else {setverdict(fail)}
+    
+    // COMPLETE TLV , SHORT FORM , NEXT PDU STARTS (4 bytes)
+    vl_oct := '301802010004067075626C6963A00B020105020101020101300030180201'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int) 
+    if((lengthof(vl_oct)-4) == vl_int) {setverdict(pass)} else {setverdict(fail)}    
+      
+    
+    // INCOMPLETE TLV , SHORT FORM 
+    vl_oct := '301802010004067075626C6963A00B'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if( 26 == vl_int) {setverdict(pass)} else {setverdict(fail)}    
+        
+    // COMPLETE TLV , LONG FORM
+    vl_oct := '3082001802010004067075626C6963A00B0201050201010201013000'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if( lengthof(vl_oct) == vl_int) {setverdict(pass)} else {setverdict(fail)}      
+    
+    // COMPLETE TLV , LONG FORM , NEXT PDU STARTS (4 bytes) 
+    vl_oct := '3082001802010004067075626C6963A00B020105020101020101300030180201'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int) 
+    if((lengthof(vl_oct)-4) == vl_int) {setverdict(pass)} else {setverdict(fail)}       
+    
+    // INCOMPLETE TLV , LONG FORM 
+    vl_oct := '3082001802010004067075626C6963A00B'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if( 28 == vl_int) {setverdict(pass)} else {setverdict(fail)}        
+           
+    // NULL STRING
+    vl_oct := ''O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if( -1 == vl_int) {setverdict(pass)} else {setverdict(fail)} 
+    
+   // 1 byte STRING
+    vl_oct := '30'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if( -1 == vl_int) {setverdict(pass)} else {setverdict(fail)}  
+    
+   // 2 byte STRING (includes length info)
+    vl_oct := '3018'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int)
+    if( 26 == vl_int) {setverdict(pass)} else {setverdict(fail)}  
+                                      
+    // COMPLETE TLV, INDEFINITE LENGTH
+    vl_oct := 'A1808101AA0000'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int) 
+    if(lengthof(vl_oct) == vl_int) {setverdict(pass)} else {setverdict(fail)}              
+    
+    // INCOMPLETE TLV,INDEFINITE LENGTH 
+    vl_oct := 'A1808101AA'O     
+    vl_int := f_TCCMessageHandling_getMessageLength4BER(vl_oct)  
+    log(vl_int) 
+    if( -1 == vl_int) {setverdict(pass)} else {setverdict(fail)}                         
+  }
+control
+{
+  execute(tc_1()) 
+}
+
+
+}

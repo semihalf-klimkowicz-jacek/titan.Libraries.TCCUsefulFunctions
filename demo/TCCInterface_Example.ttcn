@@ -1,0 +1,146 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCInterface_Example.ttcn
+//  Description:        TCC Useful Functions: Interface Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2008-12-10
+//  Contact:            http://ttcn.ericsson.se
+//////////////////////////////////////////////////////////////////////////////
+
+module TCCInterface_Example 
+{
+
+import from TCCInterface_Functions all;
+type component test_CT { };
+
+//////////////////////////////////////////////////////////////
+// Interface functions
+//////////////////////////////////////////////////////////////
+
+testcase tc_test_getIpAddresses() runs on test_CT{
+	var IPAddresses ips := f_getIpAddresses("google.com");
+	if (not isvalue(ips)) {setverdict(fail)}
+	log("google.com:",ips);
+	ips := f_getIpAddresses("localhost");
+	if (not isvalue(ips)) {setverdict(fail)}
+	log("localhost", ips);
+	ips := f_getIpAddresses("alma");
+	if (not isvalue(ips)) {setverdict(fail)}
+	log("empty string: ", ips);
+	setverdict(pass);
+}
+
+testcase f_test_getIP() runs on test_CT
+{
+  var charstring ip, subnet, broadcast;    
+  f_getIP("eth2",ip,subnet,broadcast);
+  log("IP: " & ip);
+  log("Subnetmask: " & subnet);
+  log("Broadcast: " & broadcast);    
+  setverdict(pass);
+}
+
+testcase f_test_getIP_IPv6() runs on test_CT
+{
+  var charstring ip, subnet, broadcast;    
+  f_getIP("eth2",ip,subnet,broadcast,IPv6);
+  log("IP: " & ip);
+  log("Subnetmask: " & subnet);
+  log("Broadcast: " & broadcast);    
+  setverdict(pass);
+}
+
+// test f_getHostName function
+testcase f_test_gethostname() runs on test_CT
+{
+  log(" ----------- f_getHostName ----------- ");
+  log("Hostname: ", f_getHostName());
+  setverdict(pass);
+}
+
+// test f_getIpAddr function
+testcase f_test_getipaddr() runs on test_CT
+{
+  log(" ----------- f_getIpAddr IPv4 ----------- ");
+  log("IP address: ", f_getIpAddr(f_getHostName()));
+  setverdict(pass);  
+}
+ 
+// test f_getIpAddr IPv6 function
+testcase f_test_getipaddr_IPv6() runs on test_CT
+{  
+  log(" ----------- f_getIpAddr IPv6 ----------- ");
+  log("IP address: ", f_getIpAddr("localhost",IPv6));    
+  setverdict(pass);
+}
+
+// test f_setInterfaceUp  function
+testcase f_test_setInterfaceUp() runs on test_CT
+{  
+  log(" ----------- f_setInterfaceUp ----------- ");
+  f_setInterfaceUp("eth3");  
+   
+  setverdict(pass);
+}
+
+// test f_setInterfaceDown  function
+testcase f_test_setInterfaceDown() runs on test_CT
+{  
+  log(" ----------- f_setInterfaceDown ----------- ");
+  f_setInterfaceDown("eth3");  
+   
+  setverdict(pass);
+}
+
+// test f_setIP  function
+testcase f_test_setIP() runs on test_CT
+{  
+  log(" ----------- f_setIP ----------- ");
+  f_setIP("eth3","192.168.20.21","255.255.255.255","192.168.20.255",1);  
+   
+  setverdict(pass);
+}
+
+testcase f_test_setIP_ip() runs on test_CT{
+  log(" ----------- f_setIP_ip ----------- ");
+  var boolean res := f_setIP_ip("eth0","192.169.1.1", 20);
+  if (res){ setverdict(pass); } else 
+    {setverdict(fail);}
+}
+
+testcase f_test_delIP_ip() runs on test_CT{
+  log(" ----------- f_setIP_ip ----------- ");
+  var boolean res := f_setIP_ip("eth0","192.169.1.1", 20);
+  if (res){ setverdict(pass); } else 
+    {setverdict(fail);}
+}
+
+control {
+  execute(tc_test_getIpAddresses());
+  execute(f_test_getIP());
+  execute(f_test_gethostname());
+  execute(f_test_getipaddr());
+
+  execute(f_test_getIP_IPv6());  
+  execute(f_test_getipaddr_IPv6());
+  
+  execute(f_test_setInterfaceUp()); //it works with root account, handle with care!
+  execute(f_test_setInterfaceDown()); //it works with root account, handle with care!
+  
+  execute(f_test_setIP()); //it works with root account, handle with care!
+
+  execute(f_test_setIP_ip());
+  execute(f_test_delIP_ip());
+
+}
+
+}

@@ -1,0 +1,251 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCTemplate_Functions.ttcn
+//  Description:        TCC Useful Functions: Template Functions
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2007-12-20
+//  Contact:            http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: TCCTemplate_Functions
+// 
+//  Purpose:
+//    This module supports template handling
+//    Originally for TitanSIM R2 needs it for substituting substrings in a 
+//    charstring template.
+// 
+//  Module Parameters:
+//      - 
+// 
+//  Module depends on:
+//    -
+// 
+//  Current Owner:
+//    Zsolt Szalai (EZSOSZA)
+// 
+//  Last Review Date:
+//    -
+// 
+//  Comments:
+//     Intruduction of ? regexp like behavior like \(x)? in our own pattern
+//     couses many troubles, like with the current templatefunc signature it 
+//     can be impossible to determine the parameters(using 2 ? pattern) and 
+//     lookup may need much more and complicated additions or rewrite that 
+//     we may want at that time;
+//
+///////////////////////////////////////////////////////////////////////////////
+module TCCTemplate_Functions {
+  
+//  import from TCCConversion_Functions all;
+  import from TCCFileIO_Functions all;
+
+  modulepar{
+    charstring TCCTemplate_opentoken := "$(";
+    charstring TCCTemplate_closetoken := ")";
+  }
+  
+  type function templatefunc(in charstringList pl_params) runs on self return charstring;
+
+  type record TCCSubstitution {
+    charstring patt,
+    charstring string,
+    templatefunc func optional
+    }
+
+  type record of TCCSubstitution TCCSubstitutionList;
+  
+  type record of charstring charstringList;
+
+
+  group PublicFunctions{
+
+    ///////////////////////////////////////////////////////////////////////////////
+    //  Function: f_Template_substitutetemplate
+    // 
+    //  Purpose:
+    //    Makes the substitutions according to the dictonary given
+    //
+    //  Parameters:
+    //    pl_dict - *in* *TCCSubstitutionList* - dictionary
+    //    pl_string - *in* *charstring* - string to substitute in 
+    // 
+    //  Return Value:
+    //    charstring - substituted string
+    //
+    //  Errors:
+    //    - 
+    // 
+    //  Detailed description:
+    //    -
+    // 
+    ///////////////////////////////////////////////////////////////////////////////
+    function f_Template_substitutetemplate(in TCCSubstitutionList pl_dict, in charstring pl_string) return charstring{
+      var charstring ret := pl_string;
+      //log("original template:",ret,"\n");
+      // heuristic implementation
+      /////////////////////////////////////////////////////////////////////////
+      // searches for every pattern
+      /*    for (var integer i := 0; i<sizeof(pl_dict); i:=i+1){
+	    if (ispresent(pl_dict[i].func)){
+	    var charstring matched := regexp(ret, "*(" & pl_dict[i].patt & ")*",0);//f_Template_searchpattern(ret, pl_dict[i].patt);
+	    if (matched != ""){
+	    ret := f_Template_substituteall(ret, matched, pl_dict[i].func.apply(matched, pl_dict[i].patt));
+	    }
+	    } else {
+	    ret := f_Template_substituteall(ret, pl_dict[i].patt, pl_dict[i].string);
+	    }
+	    }
+	    return ret;*/
+      //heuristic implementation end/////////////////////////////////////////////
+    
+      var charstring t_open := TCCTemplate_opentoken;
+      var charstring t_close := TCCTemplate_closetoken;
+
+
+      // fast implentation
+      //////////////////////////////////////////////////////////////////////////
+      for (var integer i:=0; i<lengthof(ret);i:=i+1){
+	if (ret[i] == t_open[0]) { // maybe its a variable in template?
+	  if (substr(ret,i,lengthof(t_open)) == t_open){ // it is a variable opening string
+	    var integer tokenstart := i;
+	    //	  log("tokenstart:",tokenstart,"\n");
+	    i := i + lengthof(t_open);
+	    while(ret[i] != t_close[0] and i<lengthof(ret)){ i:=i+1; }
+	    if (i<lengthof(ret)){
+	      if (substr(ret,i,lengthof(t_close)) == t_close){
+		i := i + lengthof(t_close);
+		var charstring variable := substr(ret, tokenstart, i - tokenstart);
+		//log("Variable found: ", variable,"\n");
+		var charstringList params := {};
+		var integer recindex := f_Template_lookup(pl_dict, variable, params);
+		if (recindex != -1){
+		  // substitution
+		  var charstring pvalue := "";
+		  if(ispresent(pl_dict[recindex].func)){
+		    pvalue := pl_dict[recindex].func.apply(params);
+		  } else{
+		    pvalue := pl_dict[recindex].string;
+		  }
+		  ret := substr(ret,0,tokenstart) & pvalue & substr(ret, i, lengthof(ret)-i);
+		  //log("New template: ", ret, "\n");
+		  i := tokenstart;
+		} else {
+		  i := tokenstart;
+		}
+	      }
+	    } else {
+	      log("No closing string in a variable!\n");
+	    }
+	  } // not a variable opening string, nothing to do
+	} // not a variable in template, nothing to do
+      }
+      return ret;
+      // fast implentation end /////////////////////////////////////////////////
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    //  Function: f_Template_subsfiletemplate
+    // 
+    //  Purpose:
+    //    Makes the substitutions in the content of the given file, 
+    //    according to the dictonary
+    //
+    //  Parameters:
+    //    pl_dict - *in* *TCCSubstitutionList* - dictionary
+    //    pl_file - *in* *charstring* - name of the file containing the template
+    // 
+    //  Return Value:
+    //    charstring - substituted string
+    //
+    //  Errors:
+    //    From FIO - in this case "" returns
+    // 
+    //  Detailed description:
+    //    -
+    // 
+    ///////////////////////////////////////////////////////////////////////////////  
+    function f_Template_subsfiletemplate(in TCCSubstitutionList pl_dict, in charstring pl_file) return charstring{
+      var integer fd := f_FIO_open_rdonly(pl_file);
+      if (fd == -1){
+	return "";
+      }
+      var integer len := f_FIO_seek_end(fd);
+      var charstring content;
+      if (f_FIO_seek_home(fd) != 0){
+	return ""
+      }
+      if (f_FIO_read_text(fd, content, len) == -1){
+	if (f_FIO_close(fd) == -1){log("Error while closing file!");}
+	return "";
+      }
+      if (f_FIO_close(fd) == -1){log("Error while closing file!");} 
+      return f_Template_substitutetemplate(pl_dict, content);
+    }
+
+  }
+
+
+  group PrivateFunctions{
+
+    function f_Template_getparams(in charstring matched, in charstring patt) 
+    return charstringList
+    {
+      var integer pc := 0;
+      var charstringList params:={};
+      for (var integer i:=0;i<lengthof(patt);i:=i+1){
+	if (patt[i]=="(" and i!=0 and patt[i-1]!="#" and patt[i-1]!="\\"){pc:=pc+1;}
+      }
+      for (var integer i:=0;i<pc;i:=i+1){ 
+	params[sizeof(params)] := regexp(matched, patt, i); 
+      } 
+      return params;
+    }
+
+    function f_Template_lookup(in TCCSubstitutionList pl_dict, in charstring pl_var, 
+			       out charstringList pl_params) return integer{
+      pl_params:={};
+      for (var integer i:=0; i<sizeof(pl_dict);i:=i+1){ // simple search
+	if(pl_dict[i].patt == pl_var){
+	  return i;
+	}
+      }
+      for (var integer i:=0; i<sizeof(pl_dict);i:=i+1){ // regexp like search
+	var integer j := 0;
+	var integer k := 0;
+	while (j<lengthof(pl_dict[i].patt) and k<lengthof(pl_var)){
+	  while(j<lengthof(pl_dict[i].patt) and k<lengthof(pl_var) and pl_dict[i].patt[j] == pl_var[k]){
+	    j := j + 1;
+	    k := k + 1; 
+	  }
+	  if (j<lengthof(pl_dict[i].patt) and pl_dict[i].patt[j]=="\\" and j+1<lengthof(pl_dict[i].patt) and pl_dict[i].patt[j+1]=="w" and j+2<lengthof(pl_dict[i].patt)){ 
+	    // we have found an escape, parameter begins
+	    j := j + 2;
+	    var integer paramstart := k;
+	    while (k<lengthof(pl_var) and pl_var[k] != pl_dict[i].patt[j]) {k := k + 1;}
+            var charstring parameter := substr(pl_var,paramstart, k - paramstart);
+	    pl_params[sizeof(pl_params)] := parameter;
+	  } else {
+	    if (j==lengthof(pl_dict[i].patt) and k==lengthof(pl_var)){
+	      return i;
+	    } else {
+	      // that is not the proper pattern;
+	      j := lengthof(pl_dict[i].patt);
+	    }
+	  }
+	}
+      }
+      return -1;
+    } 
+  } 
+}

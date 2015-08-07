@@ -1,0 +1,82 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCFileSystem_Example.ttcn
+//  Description:        TCC Useful testcases: FileSystem testcases.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2011-07-14
+//  Contact:            http://ttcn.ericsson.se
+///////////////////////////////////////////////
+
+module TCCFileSystem_Example
+{
+
+import from TCCFileSystem_Functions all;
+
+type component FileSystem_CT{}
+
+//////////////////////////////////////////////////////////////
+// FileSystem testcases
+//////////////////////////////////////////////////////////////
+
+// test f_FS_bsize testcase
+testcase f_test_FS_bsize() runs on FileSystem_CT
+{
+  log(" ----------- f_FS_bsize ----------- ");
+  log("Block size (f_FS_bsize): ", f_FS_bsize("./"));    
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_FS_block testcase
+testcase f_test_FS_block() runs on FileSystem_CT
+{
+  log(" ----------- f_FS_block ----------- ");
+  log("Number of blocks (f_FS_block): ", f_FS_block("./"));    
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_FS_bfree testcase
+testcase f_test_FS_bfree() runs on FileSystem_CT
+{
+  log(" ----------- f_FS_bfree ----------- ");
+  log("Number of free blocks (f_FS_bfree): ", f_FS_bfree("./"));    
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_FS_dspacerate testcase
+testcase f_test_FS_dspacerate() runs on FileSystem_CT
+{
+  log(" ----------- f_FS_dspacerate ----------- ");
+  log("The free space rate (f_FS_dspacerate): ", f_FS_dspacerate("./"));    
+
+  // no check
+  setverdict(pass);
+}
+
+
+
+// execute all FileSystem tests
+control
+{
+  log(" ################### FileSystem ################### ");
+
+  execute(f_test_FS_bsize());
+  execute(f_test_FS_block());
+  execute(f_test_FS_bfree());
+  execute(f_test_FS_dspacerate());
+}
+}

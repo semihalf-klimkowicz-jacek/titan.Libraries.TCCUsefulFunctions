@@ -1,0 +1,25 @@
+<!--
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:        TCCUsefulFunctions_PermutatedParameters.grp
+//  Description: FileGroup file for TCCUsefulFunctions Permutated Parameters
+//  Rev:         R22B
+//  Prodnr:      CNL 113 472
+//  Updated:     2013-05-30
+//  Contact:     http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+-->
+<!DOCTYPE TITAN_GUI_FileGroup_file>
+<File_Group name="TCCUsefulFunctions_PermutatedParameters" >
+    <File path="TCCPermutatedParameters_Definitions.ttcn" />
+    <File path="TCCPermutatedParameters_Functions.ttcn" />
+</File_Group>

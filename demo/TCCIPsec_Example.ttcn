@@ -1,0 +1,409 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCAssertion_Example.ttcn
+//  Description:        TCC Useful Functions: Assertion Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2013-01-09
+//  Contact:            http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module TCCIPsec_Example {
+
+import from TCCIPsec_Functions all;
+import from TCCIPsec_Definitions all;
+
+type component test_CT {};
+
+//////////////////////////////////////////////////////////////
+// Simple tests
+//////////////////////////////////////////////////////////////
+
+testcase SA_flush () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  log ( "f_IPsec_SADB_flush returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case ( insufficientPrivilege ) {
+      log ( "Ensure that the test is run with sufficient (root) privileges!" );
+      setverdict(fail);
+    }
+    case ( notImplemented ) {
+      log ( "Please, check the compilation flags!" );
+      log ( "Either USE_IPSEC or USE_KAME_IPSEC has to be specified." );
+      setverdict(fail);
+    }
+    case else { setverdict(fail); }
+  }
+}
+
+testcase SA_add () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 2147483653,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  log ( "f_IPsec_SADB_add returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case else { setverdict(fail); }
+  }
+  res := f_IPsec_SADB_flush ();
+}
+
+/*testcase SA_update () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_update ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { hardLifetime := 18 }, { softLifetime := 6 } } );
+  log ( "f_IPsec_SADB_update returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case else { setverdict(fail); }
+  }
+  res := f_IPsec_SADB_flush ();
+}*/
+
+testcase SA_delete () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1", "192.168.1.2",
+    esp, 2147483653, { { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SADB_delete ( "192.168.1.1", "192.168.1.2", esp, 2147483653 );
+  log ( "f_IPsec_SADB_delete returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case else { setverdict(fail); }
+  }
+}
+
+testcase SP_flush () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SPDB_flush ();
+  log ( "f_IPsec_SPDB_flush returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case ( notImplemented ) {
+      log ( "Please, check the compilation flags!" );
+      log ( "SPD handling is supported only if USE_KAME_IPSEC is specified during compilation." );
+      setverdict(fail);
+    }
+    case else { setverdict(fail); }
+  }
+}
+
+testcase SP_add () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SPDB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_add ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001,
+    tcpProto, outDir,
+    { ipSec := { { protocol := ah, mode := { transport := {} }, level := { unique := { id := 101 } } } } } );
+  log ( "f_IPsec_SPDB_add returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case else { setverdict(fail); }
+  }
+  res := f_IPsec_SPDB_flush ();
+}
+
+testcase SP_delete () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SPDB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_add ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001,
+    tcpProto, outDir,
+    { ipSec := { { protocol := ah, mode := { transport := {} }, level := { unique := { id := 101 } } } } } );
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_delete ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001, tcpProto, outDir );
+  log ( "f_IPsec_SPDB_delete returns: ", res );
+
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case else { setverdict(fail); }
+  }
+}
+
+//////////////////////////////////////////////////////////////
+// Compound tests
+// To test functionality a bit better without using test ports
+//////////////////////////////////////////////////////////////
+
+testcase SA_add_twice () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  log ( "First f_IPsec_SADB_add returns: ", res );
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res == alreadyExisted ) {
+    setverdict(pass);
+  } else {
+    log ( "Second f_IPsec_SADB_add returned unexpected result: ", res );
+    setverdict(fail);
+  }
+  res := f_IPsec_SADB_flush ();
+}
+
+testcase SA_flush_2 () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res != alreadyExisted ) { setverdict(fail); }
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res == ok ) {
+    setverdict(pass);
+  } else {
+    log ( "f_IPsec_SADB_add after f_IPsec_SADB_flush returned unexpected result: ", res );
+    setverdict(fail);
+  }
+  res := f_IPsec_SADB_flush ();
+}
+
+testcase SA_delete_2 () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_delete ( "192.168.1.1", "192.168.1.2", esp, 11001 );
+  if ( res != notFound ) { setverdict(fail); }
+  res := f_IPsec_SADB_add ( "192.168.1.1",  "192.168.1.2", esp, 11001,
+    { { policyId := 101 }, { hardLifetime := 180 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "123456789012345678901234" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1234567890123456" } } } );
+  if ( res != ok ) { setverdict(fail); }
+  res := f_IPsec_SADB_delete ( "192.168.1.1", "192.168.1.2", esp, 11001 );
+  if ( res == ok ) {
+    setverdict(pass);
+  } else {
+    log ( "f_IPsec_SADB_delete after f_IPsec_SADB_add returned: ", res );
+    setverdict(fail);
+  }
+}
+
+testcase SP_compound_test () runs on test_CT
+{
+  var TCCIPsec_Result res;
+
+  res := f_IPsec_SPDB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_add ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001,
+    tcpProto, outDir,
+    { ipSec := { { protocol := ah, mode := { transport := {} }, level := { unique := { id := 101 } } } } } );
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_add ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001,
+    tcpProto, outDir,
+    { ipSec := { { protocol := ah, mode := { transport := {} }, level := { unique := { id := 101 } } } } } );
+  if ( res != alreadyExisted ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_add ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001,
+    tcpProto, outDir,
+    { ipSec := { { protocol := ah, mode := { transport := {} }, level := { unique := { id := 101 } } } } } );
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_delete ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001, tcpProto, outDir );
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_delete ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001, tcpProto, outDir );
+  if ( res != notFound ) { setverdict(fail); }
+
+  res := f_IPsec_SPDB_add ( "192.168.1.1", -, 2001, "192.168.1.2", -, 3001,
+    tcpProto, outDir,
+    { ipSec := { { protocol := ah, mode := { transport := {} }, level := { unique := { id := 101 } } } } } );
+  select ( res ) {
+    case ( ok ) { setverdict(pass); }
+    case else { setverdict(fail); }
+  }
+
+  res := f_IPsec_SADB_flush ();
+  res := f_IPsec_SPDB_flush ();
+}
+
+testcase f_add() runs on test_CT
+{
+  var TCCIPsec_Result res;
+  res := f_IPsec_SADB_flush ();
+  if ( res != ok ) { setverdict(fail); }
+
+  res := f_IPsec_SADB_add ( "6.0.0.1",  "6.0.0.2", esp, 1980010810,
+    { { policyId := 111 }, { hardLifetime := 198 }, { softLifetime := 60 } },
+    { encrAndAuth := {
+        ealgo := EALG_3DESCBC, ekey := { text := "221111111111111111111111" },
+        aalgo := AALG_MD5HMAC, akey := { text := "1411111111111111" } } },
+        -,
+        useNatt := true,
+        ipSecMode := tunnel);
+  log ( "f_add returns: ", res );
+
+  select ( res ) {
+    case ( ok ) {setverdict(pass);}
+    case else {setverdict(fail);}
+  }
+}
+
+testcase f_delete() runs on test_CT
+{
+   var TCCIPsec_Result res;
+   res := f_IPsec_SADB_delete( "6.0.0.1", "6.0.0.2", esp, 1980010810);
+
+   log ( "f_IPsec_SPDB_delete returns: ", res );
+
+   select(res){
+       case(ok) {setverdict(pass);}
+       case else {setverdict(fail);}
+   }
+ }
+
+testcase f_spadd() runs on test_CT
+{
+  var TCCIPsec_Result res;
+  res := f_IPsec_SPDB_add ( "172.23.31.0", 24, 1234,
+                            "172.23.32.0", 32, 4321,
+                            -, outDir,
+                            {ipSec := {{
+                                          protocol := esp,
+                                          mode := { tunnel := {
+                                                                srcAddr := "6.0.0.1",
+                                                                srcPort := 4500,
+                                                                dstAddr := "6.0.0.1" ,
+                                                                dstPort := 4500
+                                                              }
+                                                   },
+                                          level := { require := {} }
+                                      }}
+                            });
+
+  log ( "f_IPsec_SPDB_add returns: ", res );
+  select ( res ) {
+    case ( ok ) { setverdict(pass);}
+    case else {setverdict(fail);}
+  }
+}
+
+testcase f_spdelete() runs on test_CT
+{
+    var TCCIPsec_Result res;
+    res := f_IPsec_SPDB_delete( "172.23.31.0", 24, 4500, "172.23.32.0", 32, 4500, -, outDir);
+    log ( "f_IPsec_SPDB_delete returns: ", res );
+
+     select ( res ) {
+       case ( ok ) { setverdict(pass); }
+       case else {setverdict(fail); }
+     }
+}
+
+control
+{
+  // Simple tests
+  execute ( SA_flush (), 1.0 );
+  execute ( SA_add (), 1.0 );
+  //execute ( SA_update (), 1.0 );
+  execute ( SA_delete (), 1.0 );
+
+  execute ( SP_flush (), 1.0 );
+  execute ( SP_add (), 1.0 );
+  execute ( SP_delete (), 1.0 );
+
+  // Compound tests
+  execute ( SA_add_twice (), 1.0 );
+  execute ( SA_flush_2 (), 1.0 );
+  execute ( SA_delete_2 (), 1.0 );
+  execute ( SP_compound_test (), 1.0 );
+
+  // Test NAT-T
+  execute(SA_flush ());
+  execute(f_add());
+  execute(f_delete());
+  execute(SP_flush ());
+  execute(f_spadd());
+  execute(f_spdelete());
+
+}
+}

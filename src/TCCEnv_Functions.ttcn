@@ -1,0 +1,82 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCEnv_Functions.ttcn
+//  Description:        TCC Useful Functions: Environment Handling Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2008-01-18
+//  Contact:            http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: TCCEnv_Functions
+// 
+//  Purpose:
+//    This module supports handling of environment e.g. environment variable
+//    operations
+// 
+//  Module Parameters:
+//      - 
+// 
+//  Module depends on:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+module TCCEnv_Functions {
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_GetEnv
+// 
+//  Purpose:
+//    Return the environment variable specified via p_env_name
+//
+//  Parameters:
+//    p_env_name - *in* *charstring* - name of the environment variable
+// 
+//  Return Value:
+//    charstring - value of the environment variable
+//
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    -
+// 
+///////////////////////////////////////////////////////////////////////////////
+external function f_GetEnv(in charstring p_env_name) return charstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_PutEnv
+// 
+//  Purpose:
+//    Set the environment variable p_env_name to p_env_value.
+//
+//  Parameters:
+//    p_env_name - *in* *charstring* - name of the environment variable
+//    p_env_value - *in* *charstring* - value of the environment variable
+// 
+//  Return Value:
+//    boolean - true if set of environment variable was successful, false else
+//
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    -
+// 
+///////////////////////////////////////////////////////////////////////////////
+external function f_PutEnv(in charstring p_env_name, in charstring p_env_value)
+return boolean;
+
+//external function f_UnsetEnv(in charstring p_env_name) return integer;
+
+}

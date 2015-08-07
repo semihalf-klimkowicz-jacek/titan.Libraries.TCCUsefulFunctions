@@ -1,0 +1,107 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCRegexp_Functions.ttcn
+//  Description:        TCC Useful Functions: Regexp Functions
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2009-11-20
+//  Contact:            http://ttcn.ericsson.se
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: Regexp_Functions
+// 
+//  Purpose:
+//    This module provides a non TTCN regular expression handling
+//    functions
+// 
+//  Module Parameters:
+//      - 
+// 
+//  Module depends on:
+//    -
+// 
+//  Current Owner:
+//    -
+// 
+//  Last Review Date:
+//    -
+// 
+///////////////////////////////////////////////////////////////////////////////
+module TCCRegexp_Functions{
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_pcre_regexp
+// 
+//  Purpose:
+//    Evaulate a Perl compatible regular expression
+// 
+//  Parameters:
+//      instr - *in* *charstring* -   string to be matched
+//      expression - *in* *charstring* -  the pattern
+//      groupno - *in* *inteher* - the number of the group to return
+//
+//  Return Value:
+//    charstring - the matched substring
+// 
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    This function returns the substring of the input character string instr,
+//    which is the content of n-th group matching to the expression.  
+//    The expression is a Perl compatible regular expression pattern. 
+//    The number of the group to be returned is specified by groupno, which 
+//    shall be a positive integer or zero. Group numbers are assigned by the 
+//    order of occurrences of the opening bracket of a group and counted 
+//    starting from 1 by step 1. If the groupno is zero, a substring macthed 
+//    by the entire pattern is returned. If no substring fulfilling all 
+//    conditions (i.e. pattern and group number) is found within the input 
+//    string, an empty string is returned.
+// 
+///////////////////////////////////////////////////////////////////////////////
+  external function f_pcre_regexp(in charstring instr, in charstring expression,
+                                  in integer groupno) return charstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_pcre_regexp
+// 
+//  Purpose:
+//    Evaulate a Perl compatible regular expression
+// 
+//  Parameters:
+//      instr - *in* *charstring* -   string to be matched
+//      expression - *in* *charstring* -  the pattern
+//
+//  Return Value:
+//    record of charstring - the matched substrings
+// 
+//  Errors:
+//    - 
+// 
+//  Detailed description:
+//    This function returns the list of the substring of the input character 
+//    string instr, which is the content of n-th group matching to the expression.  
+//    The expression is a Perl compatible regular expression pattern. 
+//    Group numbers are assigned by the 
+//    order of occurrences of the opening bracket of a group and counted 
+//    starting from 1 by step 1. If no substring fulfilling all 
+//    conditions is found within the input 
+//    string, an empty record of is returned.
+// 
+///////////////////////////////////////////////////////////////////////////////
+  type record of charstring charstring_list 
+
+  external function f_pcre_regexp_list(in charstring instr, 
+                               in charstring expression) return charstring_list;
+
+}

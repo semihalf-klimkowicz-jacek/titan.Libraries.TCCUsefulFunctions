@@ -1,0 +1,283 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCDateTime_Example.ttcn
+//  Description:        TCC Useful testcases: DateTime testcases.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2011-05-30
+//  Contact:            http://ttcn.ericsson.se
+///////////////////////////////////////////////
+
+module TCCDateTime_Example
+{
+
+import from TCCDateTime_Functions all;
+
+type component DateTime_CT
+{
+  var integer tictac;
+  var float time;
+}
+
+//////////////////////////////////////////////////////////////
+// DateTime testcases
+//////////////////////////////////////////////////////////////
+
+// test f_time testcase
+testcase f_test_time() runs on DateTime_CT
+{
+  log(" ----------- f_time ----------- ");
+  log("Time (f_time): ", f_time());    
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_ctime testcase
+testcase f_test_ctime() runs on DateTime_CT
+{
+  log(" ----------- f_ctime ----------- ");
+  log("CTime (f_ctime) - an hour before: ", 
+    f_ctime(f_time() - 3600)); 
+
+  log("CTime (f_ctime) - large integer test: ", f_ctime(2200220022));
+    
+  // no check
+  setverdict(pass);
+}
+
+// test f_time2str testcase
+testcase f_test_getTimeFormatted() runs on DateTime_CT
+{
+  log(" ----------- f_getTimeFormatted ----------- ");
+  log("TimeFormatted (f_getTimeFormatted): ", 
+    f_getTimeFormatted(f_time(),"Now is %m %I:%M%p."));
+  log("TimeFormatted (f_getTimeFormatted) - large integer test: ", 
+    f_getTimeFormatted(2200220022," is %Y.%m %I:%M%p."));      
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_time2sec testcase
+testcase f_test_time2sec() runs on DateTime_CT
+{
+  log(" ----------- f_time2sec ----------- ");
+  log("Time2Sec (f_time2sec): ", 
+    f_time2sec(2010,5,24,17,0,20));    
+
+  var integer t1 := f_time2sec(2050,5,5,0,0,0);
+  var integer t2 := f_time2sec(2050,5,5,0,0,30);
+  log("Time2Sec (f_time2sec) - large integer test: ", t1, ", ", t2);
+  
+  // no check
+  setverdict(pass);
+}
+
+// test f_getDate testcase
+testcase f_test_getCurrentDateWithOffset() runs on DateTime_CT
+{
+  log(" ----------- f_getCurrentDateWithOffset ----------- ");
+  log("Date (f_getDateFromSeconds): ", 
+    f_getCurrentDateWithOffset(0));    
+
+  log("Date (f_getDateFromSeconds) - large integer test: ", 
+    f_getCurrentDateWithOffset(2200220022));    
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_getCurrentGMTDate testcase
+testcase f_test_getCurrentGMTDate() runs on DateTime_CT
+{
+  log(" ----------- f_getCurrentGMTDate ----------- ");
+  log("GMT Date (f_getCurrentGMTDate): ", 
+    f_getCurrentGMTDate());    
+
+  // no check
+  setverdict(pass);
+}
+
+// test f_tic testcase
+testcase f_test_tic() runs on DateTime_CT
+{
+  log(" ----------- f_tic ----------- ");
+
+  tictac := f_tic();
+
+  var integer a := 0;
+  for (var integer i := 0; i < 1000000; i := i + 1)
+  {
+    a := a + 1;
+  }
+  
+  tictac := f_tic();
+  log("Tics since program start (f_tic): ", tictac);
+
+  // check only that at least one tic has been made
+  if (tictac > 0) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// test f_toc testcase
+testcase f_test_toc() runs on DateTime_CT
+{
+  log(" ----------- f_toc ----------- ");
+
+  timer T_timer := 2.0;
+  var integer vl_start;
+
+  vl_start := f_tic();
+  T_timer.start;
+  T_timer.timeout;
+
+  var integer a := 0;
+  for (var integer i := 0; i < 1000000; i := i + 1)
+  {
+    a := a + 1;
+  }
+
+  time := f_toc(vl_start);
+  log("Seconds since vl_start (f_toc): ", time);    
+
+  // approx 2 seconds has elapsed sinece last tic
+  if (time > 0.0) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+// f_timeDiff
+testcase f_test_timeDiff() runs on DateTime_CT
+{
+  log(" ----------- f_timeDiff ----------- ");
+
+  var integer vl_start, vl_end;
+  timer T_timer := 1.0;
+
+  vl_start := f_time();
+  T_timer.start;
+  T_timer.timeout;
+  vl_end := f_time();
+
+  var integer diff := f_timeDiff(vl_end, vl_start); 
+  log("Time diff (f_timeDiff): ", diff); 
+  
+  var integer largeDiff := f_timeDiff(vl_end+5500550055, vl_start+2200220022);
+  log("Time diff (f_timeDiff) - large integer test: ", largeDiff); 
+
+  if ((diff > 0) and (largeDiff > 3300330033)) { setverdict(pass); }
+  else { setverdict(fail); }
+}
+
+testcase f_test_HO42714() runs on DateTime_CT
+{
+  log(" ----------- f_test_HO42714 ----------- ");
+
+  var integer vl_a;
+  var charstring vl_ch;
+  log("Local wall time, dayligth saving");
+  log("f_time2sec( pl_year 2011, pl_mon 6, pl_day 29, pl_hour 10, pl_min 56, pl_sec 0)")
+  vl_a:=f_time2sec(2011, 6,  29, 10, 56, 0)
+  log(vl_a);
+  if(vl_a == 1309337760){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  vl_ch:= f_ctime(vl_a)
+  log(vl_ch);
+  if(vl_ch == "Wed Jun 29 10:56:00 2011\n"){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  log("UTC time")
+  log("f_time2sec_UTC( pl_year 2011, pl_mon 6, pl_day 29, pl_hour 10, pl_min 56, pl_sec 0)")
+  vl_a:=f_time2sec_UTC(2011, 6,  29, 10, 56, 0)
+  log(vl_a);
+  if(vl_a == 1309344960){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  vl_ch:= f_ctime_UTC(vl_a)
+  log(vl_ch);
+  if(vl_ch == "Wed Jun 29 10:56:00 2011\n"){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  vl_ch:= f_ctime(vl_a)
+  log(vl_ch);
+  if(vl_ch == "Wed Jun 29 12:56:00 2011\n"){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  log("Local wall time, no dayligth saving");
+  log("f_time2sec( pl_year 2011, pl_mon 1, pl_day 29, pl_hour 10, pl_min 56, pl_sec 0)")
+  vl_a:=f_time2sec(2011, 1,  29, 10, 56, 0)
+  log(vl_a);
+  if(vl_a == 1296294960){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  vl_ch:= f_ctime(vl_a)
+  log(vl_ch);
+  if(vl_ch == "Sat Jan 29 10:56:00 2011\n"){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  log("UTC time")
+  log("f_time2sec_UTC( pl_year 2011, pl_mon 1, pl_day 29, pl_hour 10, pl_min 56, pl_sec 0)")
+  vl_a:=f_time2sec_UTC(2011, 1,  29, 10, 56, 0)
+  log(vl_a);
+  if(vl_a == 1296298560){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  vl_ch:= f_ctime_UTC(vl_a)
+  log(vl_ch);
+  if(vl_ch == "Sat Jan 29 10:56:00 2011\n"){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+  vl_ch:= f_ctime(vl_a)
+  log(vl_ch);
+  if(vl_ch == "Sat Jan 29 11:56:00 2011\n"){
+    setverdict(pass)
+  } else {
+    setverdict(fail)
+  }
+}
+
+
+// execute all DateTime tests
+control
+{
+  log(" ################### DateTime ################### ");
+
+  execute(f_test_time());
+  execute(f_test_ctime());
+  execute(f_test_getTimeFormatted());
+  execute(f_test_time2sec());
+  execute(f_test_getCurrentDateWithOffset());
+  execute(f_test_getCurrentGMTDate());
+  execute(f_test_tic());
+  execute(f_test_toc());
+  execute(f_test_timeDiff());
+  execute(f_test_HO42714())
+}
+}

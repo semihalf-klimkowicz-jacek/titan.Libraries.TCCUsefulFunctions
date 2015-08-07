@@ -1,0 +1,60 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCTemplate_Example.ttcn
+//  Description:        TCC Useful Functions: Template Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2007-12-20
+//  Contact:            http://ttcn.ericsson.se
+///////////////////////////////////////////////
+
+module TCCTemplate_Example{
+  
+  import from TCCTemplate_Functions all;
+  
+  function nlist(in charstringList pl_params) return charstring{
+    //    log("params: ",pl_params,"\n");
+    if (sizeof(pl_params)==3 and pl_params[2]=="R"){
+      return int2str(6453);
+    } else { return int2str(9);}
+  }
+  
+  control{
+    
+    var charstring str := "<SOAP-ENV:Envelope
+xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"
+xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\"
+xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
+xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">
+<SOAP-ENV:Header>
+<cai3g:SessionId xmlns:cai3g=\"http://schemas.ericsson.com/cai3g1.0/2004/01/22/\">$(caiSs)</cai3g:SessionId>
+<cai3g:TransactionId xmlns:cai3g=\"http://schemas.ericsson.com/cai3g1.0/2004/01/22/\">1234$(caiSS)$(caiSs)</cai3g:TransactionId>
+<cai3g:SequenceId xmlns:cai3g=\"http://schemas.ericsson.com/cai3g1.0/2004/01/22/\">$(caiSq)</cai3g:SequenceId>
+</SOAP-ENV:Header>
+<SOAP-ENV:Body>
+	alma$(<2..13>[R])korte
+  <Delete xmlns=\"http://schemas.ericsson.com/cai3g1.0/2004/01/22/$(caiSq)\">
+    <MOType>PoCGroupsXDMSUser@http://schemas.ericsson.com/ims/pocgroupsxdms/provisioning/2005/06/01/</MOType>
+  <MOId>
+    <PUBLICID>sip:$(usr00)@$(dom00)</PUBLICID>
+  </MOId>
+  </Delete>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+";
+
+    //    for (var integer i:=0; i<1;i:=i+1){ 
+    //  f_subsfiletemplate({{"$(caiSs)","CAISS",omit},{"$(caiSq)","CAISQ", omit},{"$(<\\w..\\w>[\\w])","", refers(nlist)}},"cai3g_delete_PoCGroupsXDMSUser.body"); 
+    log(f_Template_substitutetemplate({{"$(caiSs)","CAISS",omit},{"$(caiSq)","CAISQ", omit},{"$(<\\w..\\w>[\\w])","", refers(nlist)}}, str));
+												   // } 
+    log(f_Template_subsfiletemplate({{"$(caiSs)","CAISS",omit},{"$(caiSq)","CAISQ", omit},{"$(<\\w..\\w>[\\w])","", refers(nlist)}},"cai3g_delete_PoCGroupsXDMSUser.body"));
+  }
+}

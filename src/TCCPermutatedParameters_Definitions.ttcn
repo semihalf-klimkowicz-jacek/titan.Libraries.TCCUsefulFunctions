@@ -1,0 +1,161 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCPermutatedParameters_Definitions.ttcn
+//  Description:        definitions for permutated params
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2013-05-30
+//  Contact:            http://ttcn.ericsson.se
+//////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//  Module: TCCPermutatedParameters_Definitions
+//
+//  Purpose:
+//    This module contains the definitions of the PermutatedParameters
+//
+//  Module Parameters:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+module TCCPermutatedParameters_Definitions {
+
+import from General_Types all;
+
+//=========================================================================
+// Data Types
+//=========================================================================
+
+///////////////////////////////////////////////////////////
+//  Type: PP_ParameterAssignmentList
+// 
+//  Purpose:
+//   List of PP_ParameterAssignment
+// 
+//  Elements:
+//    list elements
+// 
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+type record of PP_ParameterAssignment PP_ParameterAssignmentList;
+
+///////////////////////////////////////////////////////////
+//  Type: PP_ParameterAssignment
+// 
+//  Purpose:
+//   Parameter definition, including type(s) and values of the parameter 
+// 
+//  Elements:
+//    typeField - *charstring* - type (list) of the parameter. List of types
+//      are separated by comma (',')
+//    valueField - *charstring* - value(s) of the parameter.
+//      Values can be single values, range of values, value list, or any combination of these.
+// 
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+type record PP_ParameterAssignment {
+  charstring  typeField,
+  charstring  valueField
+}
+
+///////////////////////////////////////////////////////////
+//  Type: PP_Range
+// 
+//  Purpose:
+//   Definition of a range. Ranges have prefix, minimum and maximum boundary.
+//   Prefix can contain any characters, while minimum and maximum only digits.
+// 
+//  Elements:
+//    prefix - *charstring* - prefix of a range.
+//    rangeMin - *integer* - the minimum (beginning) of a range
+//    rangeMax - *integer* - the maximum (end) of a range
+// 
+//  Detailed Comments:
+//
+//    Example range: +3614377100 - +3614377200
+//      prefix : +3614377
+//      rangeMin: 100
+//      rangeMin: 200
+//
+///////////////////////////////////////////////////////////
+type record PP_Range {
+  charstring  prefix,
+  integer     rangeMin,
+  integer     rangeMax
+}
+
+///////////////////////////////////////////////////////////
+//  Type: PP_RangeList
+// 
+//  Purpose:
+//   List of PP_Range
+// 
+//  Elements:
+//    list elements
+// 
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+type record of PP_Range PP_RangeList;
+
+///////////////////////////////////////////////////////////
+//  Type: PP_SingleParam
+// 
+//  Purpose:
+//   Single parameter, types and values
+// 
+//  Elements:
+//    types - *EPTF_CharstringList* - types assigned to the values
+//    values - *PP_RangeList* - values assigned to the types
+// 
+//  Detailed Comments:
+//
+///////////////////////////////////////////////////////////
+type record PP_SingleParam {
+  Charstrings  types,
+  PP_RangeList         values
+}
+
+///////////////////////////////////////////////////////////
+//  Type: PP_ParamSetList
+// 
+//  Purpose:
+//   List of PP_ParamSet
+// 
+//  Elements:
+//    list elements
+// 
+//  Detailed Comments:
+//
+//    Can be used to group together PP_ParamSets
+//
+///////////////////////////////////////////////////////////
+type record of PP_ParamSet PP_ParamSetList; // is each CGPN has its own current ParamSet
+
+///////////////////////////////////////////////////////////
+//  Type: PP_ParamSet
+// 
+//  Purpose:
+//   Set of PP_SingleParam
+// 
+//  Elements:
+//    set elements
+// 
+//  Detailed Comments:
+//
+//    Can be used to group together PP_SingleParams
+//
+///////////////////////////////////////////////////////////
+type set of PP_SingleParam PP_ParamSet;  // ie params belonging to one particular call
+
+} with { extension "version R22B"}

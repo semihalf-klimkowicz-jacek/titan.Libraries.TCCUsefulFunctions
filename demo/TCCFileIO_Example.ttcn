@@ -1,0 +1,331 @@
+/******************************************************************************
+* Copyright (c) 2004, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+
+******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCFileIO_Example.ttcn
+//  Description:        TCC Useful Functions: File IO Functions.
+//  Rev:                R22B
+//  Prodnr:             CNL 113 472
+//  Updated:            2008-12-10
+//  Contact:            http://ttcn.ericsson.se
+//////////////////////////////////////////////////////////////////////////////
+
+module TCCFileIO_Example
+{
+modulepar charstring tsp_ird_dir := "/vobs/ttcn/TCC_Releases/Libraries/TCCUsefulFunctions_CNL113472/demo"
+modulepar charstring tsp_ird_file := "IRD_record_1"
+
+import from TCCFileIO_Functions all;
+
+type component empty_CT
+{ 
+  var integer v_ret_val;
+};
+
+testcase TC_test () runs on empty_CT
+{
+  var integer vl_fd;
+  var charstring vl_text_out := "First lineabcdefSecond lineabcdefThird lineabcdefFourth lineabcdef";
+  var charstring vl_text_tmp := "abcdef";
+  var charstring vl_text_in;
+  vl_fd := f_FIO_open_trunc_rdwr_excl ("test1.txt");
+  if (vl_fd < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_write_text (vl_fd, vl_text_out);
+  v_ret_val := f_FIO_flush (vl_fd);
+  v_ret_val := f_FIO_seek_home (vl_fd);
+  for (var integer vl_i := 0; vl_i < 4; vl_i := vl_i + 1)
+    {
+      var integer n := f_FIO_read_text_until (vl_fd, vl_text_in, vl_text_tmp);
+      if (n < 0)
+        {
+	  log (f_FIO_get_error_string ());
+	  setverdict (fail);
+	}
+      log (vl_text_in);
+    }  
+  v_ret_val := f_FIO_seek_end (vl_fd);
+  v_ret_val := f_FIO_write_text (vl_fd, vl_text_out);
+  v_ret_val := f_FIO_close (vl_fd);
+  /* Try to close it again.  */
+  if (f_FIO_close (vl_fd) < 0)
+    {
+      setverdict (pass);
+    }
+}
+
+testcase TC_test_open () runs on empty_CT
+{
+  var integer vl_fd;
+  vl_fd := f_FIO_open_trunc_wronly_excl ("test1.txt");
+  if (vl_fd < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_write_text (vl_fd, "First line");
+  v_ret_val := f_FIO_close (vl_fd);
+  /* After a successful call.  */
+  log (f_FIO_get_error_string ());
+  setverdict (pass);
+}
+
+testcase TC_test_close () runs on empty_CT
+{
+  var integer vl_fd_first, vl_fd_second;
+  vl_fd_first := f_FIO_open_rdonly ("test1.txt");
+  vl_fd_second := f_FIO_open_rdonly ("test1.txt");
+  if (vl_fd_first < 0 or vl_fd_second < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  vl_fd_first := f_FIO_close (vl_fd_first);
+  vl_fd_second := f_FIO_close (vl_fd_second);
+  if (vl_fd_first < 0 or vl_fd_second < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  /* Try to close it again.  */
+  if (f_FIO_close (vl_fd_first) < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (pass);
+    }
+  setverdict (pass);
+}
+
+testcase TC_test_seek () runs on empty_CT
+{
+  var integer vl_fd;
+  var charstring vl_text_in;
+  vl_fd := f_FIO_open_trunc_rdwr ("test1.txt");
+  v_ret_val := f_FIO_write_text (vl_fd, "ABCDFFGHIJKL");
+  v_ret_val := f_FIO_seek_backward (vl_fd, 8);
+  v_ret_val := f_FIO_write_text (vl_fd, "E");
+  v_ret_val := f_FIO_seek_end (vl_fd);
+  v_ret_val := f_FIO_write_text (vl_fd, "MNOPQRSTUVWXYZ");
+  v_ret_val := f_FIO_seek_home (vl_fd);
+  v_ret_val := f_FIO_read_text_until (vl_fd, vl_text_in, "XYZ");
+  log (vl_text_in);
+  v_ret_val := f_FIO_close (vl_fd);
+  /* Try to seek after close.  */
+  if (f_FIO_seek_home (vl_fd) < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (pass);
+    }
+  setverdict (pass);
+}
+
+testcase TC_test_write () runs on empty_CT
+{
+  var integer vl_fd;
+  var octetstring vl_data := '41414242'O;
+  vl_fd := f_FIO_open_append_wronly ("test1.txt");
+  if (f_FIO_write_data (vl_fd, vl_data) < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_close (vl_fd);
+  vl_fd := f_FIO_open_rdonly ("test1.txt");
+  /* Try to write to the file opened in read only mode.  */
+  if (f_FIO_write_data (vl_fd, vl_data) >= 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_close (vl_fd);
+  setverdict (pass);
+}
+
+testcase TC_test_write_flush () runs on empty_CT
+{
+  var integer vl_fd;
+  var octetstring vl_data := '41414242'O;
+  vl_fd := f_FIO_open_trunc_wronly_excl ("test1.txt");
+  if (f_FIO_write_data_flush (vl_fd, vl_data) < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_close (vl_fd);
+  vl_fd := f_FIO_open_append_wronly_excl ("test1.txt");
+  if (f_FIO_write_data_flush (vl_fd, vl_data) < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_flush (vl_fd);
+  v_ret_val := f_FIO_close (vl_fd);
+  setverdict (pass);
+}
+
+testcase TC_test_read () runs on empty_CT
+{
+  var integer vl_fd := f_FIO_open_rdonly ("test1.txt");
+  var charstring vl_text_in;
+  if (f_FIO_read_text (vl_fd, vl_text_in, 4) < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  v_ret_val := f_FIO_close (vl_fd);
+  log (vl_text_in);
+  setverdict (pass);
+}
+
+testcase TC_test_read_until () runs on empty_CT
+{
+  var integer vl_fd;
+  vl_fd := f_FIO_open_trunc_rdwr ("test2.txt");
+  v_ret_val := f_FIO_write_data (vl_fd, '41414242'O);
+  var octetstring vl_data_in;
+  v_ret_val := f_FIO_seek_home (vl_fd);
+  v_ret_val := f_FIO_read_data_until (vl_fd, vl_data_in, '42'O);
+  log (vl_data_in);
+  v_ret_val := f_FIO_close (vl_fd);
+  vl_fd := f_FIO_open_trunc_rdwr ("test2.txt");
+  v_ret_val := f_FIO_write_text (vl_fd, "black white green blue red yellow pink ");
+  v_ret_val := f_FIO_seek_home (vl_fd);
+  for (var integer vl_i := 0; vl_i < 7; vl_i := vl_i + 1)
+    {
+      var charstring vl_text_in;
+      if (f_FIO_read_text_until (vl_fd, vl_text_in, " ") < 0)
+        {
+          log (f_FIO_get_error_string ());
+          setverdict (fail);
+	}
+      log (vl_text_in);
+    }
+  v_ret_val := f_FIO_close (vl_fd);    
+  setverdict (pass);
+}
+
+testcase TC_test_excl () runs on empty_CT
+{
+  var integer vl_fd1 := f_FIO_open_trunc_rdwr_excl ("../test3.txt");
+  var integer vl_fd2 := f_FIO_open_append_rdwr ("../test3.txt");
+  if (vl_fd1 < 0 or vl_fd2 < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  if (f_FIO_write_text (vl_fd1, "First line") < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  if (f_FIO_write_text (vl_fd2, "First line") < 0)
+    {
+      log (f_FIO_get_error_string ());
+      setverdict (fail);
+    }
+  /* Start this program on a different terminal.  It should fail.  */
+  timer t := 20.0;
+  t.start;
+  alt
+    {
+      [] t.timeout { }
+    }
+
+  v_ret_val := f_FIO_close (vl_fd1);
+  v_ret_val := f_FIO_close (vl_fd2);
+  setverdict (pass);
+}
+
+testcase TC_test_read_TLV() runs on empty_CT
+{
+  var octetstring vl_oct;
+  var boolean opened := false;
+  var integer vl_fd1;
+
+  //Change the directory
+  if (not (f_FIO_chdir(tsp_ird_dir)))
+  {
+    log("Directory change failed");
+    setverdict(inconc); stop;
+  }
+
+  //Open the file
+  vl_fd1 := f_FIO_open_rdonly(tsp_ird_file);
+  if(vl_fd1== -1)
+  {
+    log("Opening file failed.");
+  }
+  else
+  { //Go to the end of file
+    opened := true;
+    v_ret_val := f_FIO_seek_end(vl_fd1);
+  }
+
+            //Start: replace of writing into the file by the SUT
+            var integer vl_fd2;
+            vl_fd2 := f_FIO_open_append_wronly(tsp_ird_file);
+            if(vl_fd2== -1)
+            {
+              setverdict(inconc);
+              stop;
+            }
+
+            v_ret_val := f_FIO_write_data(vl_fd2,'3082014C801032303033303930393034323034352E35A280301480074552494353533181094D415F435253535F31301480074552494353533281094D415F435253535F320000A34280084E4554574F524B4981070149172402222F820101A322800100810700491721030050820901490509515738400F830901262021030000050FA406800106810111A480AF80A10D8002262F810102820101830101820100A30D81010282010183050110300301A48031323017A006800102810103A10D810102820101830501103005183017A006800103810105A10D81010282010183050110300528314B3017A006800102810103A10D810102820101830501103005183017A006800103810105A10D810102820101830501103005283017A006800104810107A10D810102820101830501103005300000860100870A1C08A10602010102017C88071C05A20302010100000000'O);
+            v_ret_val := f_FIO_write_text(vl_fd2,"Here would come the 2nd IRD record");
+            v_ret_val := f_FIO_close(vl_fd2);
+            //End: replace of writing by the SUT
+
+  if (not opened)
+  { //Open the file
+    vl_fd1 := f_FIO_open_rdonly(tsp_ird_file);
+    if(vl_fd1== -1)
+    {
+      log("File %s cannot be opened.",tsp_ird_file);
+      setverdict(inconc); stop;
+    }
+  }
+
+  //Read a complete TLV structure, read position is at the original end 
+  //of the file, so new charging data records will be read
+  if(f_FIO_read_data_TLV(vl_fd1,vl_oct) >-1)
+  {
+    log(vl_oct);
+    
+//    var IRD_message vl_ird_msg := dec_PDU_IRD(vl_oct); //Decode IRD message
+  }
+
+  if(f_FIO_close(vl_fd1) == -1)
+  {
+    log("File %s cannot be closed.",tsp_ird_file);
+    setverdict(inconc); stop;
+  }
+  else
+  {
+    setverdict(pass);
+  } 
+}
+
+control
+{
+  execute (TC_test ());
+  execute (TC_test_open ());
+  execute (TC_test_close ());
+  execute (TC_test_seek ());
+  execute (TC_test_write ());
+  execute (TC_test_write_flush ());
+  execute (TC_test_read ());
+  execute (TC_test_read_until ());
+  execute (TC_test_excl ()); /* This fails on Cygwin.  */
+  execute (TC_test_read_TLV ());
+}
+
+}
