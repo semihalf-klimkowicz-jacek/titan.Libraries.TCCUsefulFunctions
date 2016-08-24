@@ -1,18 +1,19 @@
-/******************************************************************************
-* Copyright (c) 2004, 2015  Ericsson AB
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-
-******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Copyright Test Competence Center (TCC) ETH 2016                           //
+//                                                                           //
+// The copyright to the computer  program(s) herein  is the property of TCC. //
+// The program(s) may be used and/or copied only with the written permission //
+// of TCC or in accordance with  the terms and conditions  stipulated in the //
+// agreement/contract under which the program(s) have been supplied          //
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCInterface_Functions.ttcn
 //  Description:        TCC Useful Functions: Interface Functions
-//  Rev:                R22B
+//  Rev:                R25A
 //  Prodnr:             CNL 113 472
-//  Updated:            2010-03-25
+//  Updated:            2016-06-06
 //  Contact:            http://ttcn.ericsson.se
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,7 +32,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 module TCCInterface_Functions {
-
+import from TCCConversion_Functions all
 ///////////////////////////////////////////////////////////////////////////////
 //  Record: IPAddresses
 // 
@@ -61,7 +62,8 @@ type record IPAddresses{
 type enumerated TCCInterface_IPAddressType 
 {
   IPv4,
-  IPv6
+  IPv6,
+  UNKNOWN
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -356,4 +358,38 @@ external function f_getIpAddr(in charstring hostname, in TCCInterface_IPAddressT
 // 
 ///////////////////////////////////////////////////////////////////////////////
 external function f_getIpAddresses(in charstring hostname) return IPAddresses;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_verifyIpAddr
+//
+//  Purpose:
+//    Returns the given host is valid IPv4/IPv6 or not.
+//
+//  Parameters:
+//    pl_host   - *in* *charstring* - host to investigate
+//    pl_ipType - *TCCInterface_IPAddressType* - type of IP
+//
+//  Return Value:
+//    boolean - true if given host is an IPv4 or IPv6 valid address
+//
+//  Errors:
+//    -
+//
+//  Detailed description:
+//    If pl_ipType  is not default value "UNKNOWN",
+//       function also check matching real IP type of host with
+//       given type in parameter
+//
+///////////////////////////////////////////////////////////////////////////////
+public function f_verifyIpAddr(in charstring pl_host, in TCCInterface_IPAddressType pl_ipType := UNKNOWN) return boolean
+{
+  var boolean vl_valid_ip := f_convertIPAddrToBinary(pl_host) != ''O;
+  if(vl_valid_ip and pl_ipType != UNKNOWN)
+  {
+    var boolean vl_ipv6_real := f_strstr(pl_host, ":") != -1;
+    if(pl_ipType == IPv4){return not vl_ipv6_real}
+    else if (pl_ipType == IPv6) {return vl_ipv6_real}
+  }
+  return vl_valid_ip
+}
 }

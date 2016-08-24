@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- Copyright (c) 2015 Ericsson
+ Copyright (c) 2016 Ericsson
 
   The copyright to the computer  program(s) herein  is the property of Ericsson.
   The program(s) may be used and/or copied only with the written permission
@@ -10,12 +10,15 @@
 
    File:               TCCUsefulFunctions_CNL113472_Interface.tpd
    Description:        tpd project file
-   Rev:                R22B
+   Rev:                R25A
    Prodnr:             CNL 113 472
 
  -->
 <TITAN_Project_File_Information version="1.0">
   <ProjectName>TCCUsefulFunctions_CNL113472_Interface</ProjectName>
+  <ReferencedProjects>
+    <ReferencedProject name="TCCUsefulFunctions_CNL113472_Common" projectLocationURI="TCCUsefulFunctions_CNL113472_Common.tpd"/>
+  </ReferencedProjects>
   <Files>
     <FileResource projectRelativePath="TCCInterface.cc" relativeURI="src/TCCInterface.cc"/>
     <FileResource projectRelativePath="TCCInterface_Functions.ttcn" relativeURI="src/TCCInterface_Functions.ttcn"/>

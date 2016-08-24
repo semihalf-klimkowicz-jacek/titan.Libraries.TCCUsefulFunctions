@@ -1,16 +1,17 @@
-/******************************************************************************
-* Copyright (c) 2004, 2015  Ericsson AB
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-
-******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Copyright Test Competence Center (TCC) ETH 2007                           //
+//                                                                           //
+// The copyright to the computer  program(s) herein  is the property of TCC. //
+// The program(s) may be used and/or copied only with the written permission //
+// of TCC or in accordance with  the terms and conditions  stipulated in the //
+// agreement/contract under which the program(s) have been supplied          //
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCMaths.cc
 //  Description:        TCC Useful Functions: Maths Functions.
-//  Rev:                R22B
+//  Rev:                R25A
 //  Prodnr:             CNL 113 472
 //  Updated:            2007-03-07
 //  Contact:            http://ttcn.ericsson.se

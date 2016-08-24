@@ -1,16 +1,17 @@
-/******************************************************************************
-* Copyright (c) 2004, 2015  Ericsson AB
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-
-******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Copyright Test Competence Center (TCC) ETH 2016                           //
+//                                                                           //
+// The copyright to the computer  program(s) herein  is the property of TCC. //
+// The program(s) may be used and/or copied only with the written permission //
+// of TCC or in accordance with  the terms and conditions  stipulated in the //
+// agreement/contract under which the program(s) have been supplied          //
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCIPsec.cc
 //  Description:        TCC Useful Functions: IPsec Functions
-//  Rev:                R22B
+//  Rev:                R25A
 //  Prodnr:             CNL 113 472
 //  Updated:            2012-10-31
 //  Contact:            http://ttcn.ericsson.se
@@ -78,9 +79,10 @@ int           sd = -1;
 
 class PfKey
 {
-  unsigned int  seq;
-  unsigned char rdBuf[2048];
+  static unsigned int  TCCIPsec_PfKey_seq;
 
+  public:
+  unsigned char rdBuf[2048];
   int cnvErr ( int osErr ) {
     int err = TCCIPsec__Result::socketError;
     switch ( osErr ) {
@@ -99,26 +101,29 @@ class PfKey
     return err;
   }
 
+  private:
   inline void dump ( const char * descr, const void * buf, unsigned int len )
   {
-//    const unsigned char * data = (const unsigned char*) buf;
-    TTCN_Logger::begin_event( TTCN_DEBUG );
-    TTCN_Logger::log_event( "%s:   Dump of %03X bytes: ", descr, len );
-/*    if ( data == 0 ) {
-      TTCN_Logger::log_event( "Null pointer" );
-    } else {
-      TTCN_Logger::log_event("\n %03X ", 0);
-      for ( unsigned int i=0; i < len; i++ ) {
-        TTCN_Logger::log_event( " %02X", data[i] );
-        if ( i % 16 == 15 ) {
-          TTCN_Logger::log_char( '\n' );
-          TTCN_Logger::log_event( " %03X ", i + 1 );
+    if(TTCN_Logger::log_this_event(TTCN_DEBUG)) {
+      const unsigned char * data = (const unsigned char*) buf;
+      TTCN_Logger::begin_event( TTCN_DEBUG );
+      TTCN_Logger::log_event( "%s:   Dump of %03X bytes: ", descr, len );
+      if ( data == 0 ) {
+        TTCN_Logger::log_event( "Null pointer" );
+      } else {
+        TTCN_Logger::log_event("\n %03X ", 0);
+        for ( unsigned int i=0; i < len; i++ ) {
+          TTCN_Logger::log_event( " %02X", data[i] );
+          if ( i % 16 == 15 ) {
+            TTCN_Logger::log_char( '\n' );
+            TTCN_Logger::log_event( " %03i ", i + 1 );
+          }
         }
       }
-    }*/
-    TTCN_Logger::end_event();
+      TTCN_Logger::end_event();
+    }
   }
-    
+
 public:
   PfKey () throw ( Error ) {
     if (sd < 0){
@@ -128,18 +133,17 @@ public:
 	throw Error( cnvErr ( errno ) );
       }
     }
-    seq = 0;
     //    timeval tv;
     //    seq = ( gettimeofday ( & tv, 0 ) == 0 ) ? tv.tv_usec + tv.tv_sec * 1000000 : 0;
-    TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::PfKey: sd: %i,   seq: 0x%08X", sd, seq );
+    !TCCIPsec_PfKey_seq ? TCCIPsec_PfKey_seq = getpid() : TCCIPsec_PfKey_seq++;
+    TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::PfKey: sd: %i, initial seq: 0x%08X", sd, TCCIPsec_PfKey_seq );
   }
   ~PfKey () { /*close ( sd );*/ }
-  unsigned int getSeq () { return seq; }
+  unsigned int getSeq () { return TCCIPsec_PfKey_seq; }
 
-  int receive ( const void ** buf ) throw ( Error ) {
+  int receive ( ) throw ( Error ) {
     for (;;) {
-      * buf = 0;
-      int r = recv ( sd, rdBuf, sizeof ( rdBuf ), MSG_DONTWAIT );
+      int r = recv ( sd, rdBuf, sizeof ( rdBuf ), MSG_DONTWAIT );  // #ED note: MSG_WAITALL seem to return EINVAL (Invalid Argument)
       if ( r < 0 ) {
         if ( errno != EAGAIN ) {
           TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::receive: OS error: %i: \"%s\"", errno, strerror ( errno ) );
@@ -147,19 +151,20 @@ public:
         }
         return 0;
       }
-      if ( r == 0 )
+      if ( r == 0 ) {
+        TTCN_Logger::log ( TTCN_WARNING, "TCCIPsec: PfKey::receive: received answer length 0" );
         return 0;
+      }
       dump ( "TCCIPsec: PfKey::receive: ", rdBuf, r );
-      sadb_msg  * msg = (sadb_msg*) rdBuf;
+      sadb_msg * msg = (sadb_msg*) rdBuf;
       if ( (unsigned int) r < sizeof ( sadb_msg ) ||
            msg->sadb_msg_version != PF_KEY_V2 ||
            r < msg->sadb_msg_len ||
-           msg->sadb_msg_seq != seq ||
+           msg->sadb_msg_seq != TCCIPsec_PfKey_seq ||
            (int) msg->sadb_msg_pid != getpid () ) {
-        TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::receive: Received mesasage discarded" );
+        TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::receive: Received message discarded" );
         continue;
       }
-      * buf = (const void*) rdBuf;
       return r;
     }
   }
@@ -182,12 +187,11 @@ public:
       len -= r;
     }
   }
-  
+
   void checkAnswer () throw ( Error ) {
-    const void * buf;
     int r = 0;
     for ( int i = 1;; ++i ) {
-      r = receive ( & buf );
+      r = receive ( );
       if ( r > 0 ) break;
       if ( i > 5 ) {
         TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::checkAnswer: No answer" );
@@ -196,21 +200,24 @@ public:
       TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::checkAnswer: try again (%i)", i );
       usleep ( 0 );
     }
-    int res = ((const sadb_msg*) rdBuf )->sadb_msg_errno;
+    sadb_msg * msg = (sadb_msg*) rdBuf;
+    int res = msg->sadb_msg_errno;
     if ( res != 0 ) {
       TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::checkAnswer: OS error: %i: \"%s\"", res, strerror ( res ) );
       throw Error( cnvErr ( res ) );
-    }        
+    }
     TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: PfKey::checkAnswer: Answer received: Ok" );
   }
 }; //end of class PfKey
+
+unsigned int  PfKey::TCCIPsec_PfKey_seq = 0;
 
 static const unsigned short SADB_MSG_LEN64 = sizeof ( sadb_msg ) / 8;
 
 int setSadbMsg ( void * buf, unsigned char type, unsigned char saType, unsigned short len, unsigned int seq )
 {
   sadb_msg  * msg = (sadb_msg*) buf;
-  
+
   msg->sadb_msg_version = PF_KEY_V2;
   msg->sadb_msg_type = type;
   msg->sadb_msg_errno = 0;
@@ -219,7 +226,7 @@ int setSadbMsg ( void * buf, unsigned char type, unsigned char saType, unsigned 
   msg->sadb_msg_reserved = 0;
   msg->sadb_msg_seq = seq;
   msg->sadb_msg_pid = getpid ();
-  return sizeof ( * msg );
+  return sizeof (sadb_msg);
 }
 
 int set_saEndPoint( void *buf, const char *address, int port)
@@ -322,7 +329,81 @@ inline unsigned short ipSecModeToIPMode ( const TCCIPsec__IPsecMode & ipSecMode 
   }
 }
 
-TCCIPsec__Result f__IPsec__SADB__add (
+TCCIPsec__Result f__IPsec__SPI__get (
+    const CHARSTRING& srcAddress,
+    const CHARSTRING& dstAddress,
+    const TCCIPsec__Protocol& protocol,
+    INTEGER& spi)
+{
+  TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: Enter" );
+  spi = -1;
+  try {
+    PfKey           pfKey;
+    unsigned char   msg[1024];
+    int             pos = sizeof(sadb_msg);
+
+    pos += setAddressPart ( msg + pos, SADB_EXT_ADDRESS_SRC, srcAddress );
+    pos += setAddressPart ( msg + pos, SADB_EXT_ADDRESS_DST, dstAddress );
+    setSadbMsg ( & msg, SADB_GETSPI, protocol, pos / 8, pfKey.getSeq () );
+
+    unsigned int r = 0;
+    for ( int i = 1;; i++ ) {
+      pfKey.send ( & msg, pos );
+      r = pfKey.receive ( );
+      if ( r > 0 ) break;
+      if ( i > 5 ) {
+        TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: No answer" );
+        return TCCIPsec__Result::socketError;
+      }
+      TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: try again (%i)", i );
+      usleep ( 0 );
+    }
+    sadb_msg * sa_msg = (sadb_msg*)pfKey.rdBuf;
+    int res = sa_msg->sadb_msg_errno;
+    if ( res != 0 ) {
+      TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: OS error in returned answer: %i: \"%s\"", res, strerror ( res ) );
+      return pfKey.cnvErr ( res );
+    }
+
+    if(sa_msg->sadb_msg_type != SADB_GETSPI) {
+      TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: response is not valid; SADB_GETSPI was expected" );
+      return TCCIPsec__Result::socketError;
+    }
+
+    TTCN_Logger::log( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: full message length: %u", (sa_msg-> sadb_msg_len) * 8);
+
+    pos = sizeof(sadb_msg);
+    sadb_ext *ext = NULL;          // generic extension type
+    sadb_sa *sa = NULL;            // SA extension type - the one we are looking for
+    do {                           // look through the response for SADB_EXT_SA extension containing the SPI we need
+      TTCN_Logger::log( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: pos: %u", pos );
+      ext = (sadb_ext*) (pfKey.rdBuf + pos);
+      if(ext -> sadb_ext_type == SADB_EXT_SA) {
+        sa = (sadb_sa*) (pfKey.rdBuf + pos);
+        break;
+      }
+      TTCN_Logger::log( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: jumping over extension: %u, length: %u", (unsigned int)ext -> sadb_ext_type, ext -> sadb_ext_len * 8 );
+      pos += (ext -> sadb_ext_len) * 8;
+    } while( pos < (sa_msg->sadb_msg_len) * 8 );
+
+    if(sa) {
+      spi = ntohl(sa -> sadb_sa_spi);
+      TTCN_Logger::log( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: got SPI: %u", (unsigned int)spi.get_long_long_val() );
+    } else {
+      TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: response is not valid; SADB_GETSPI / SADB_EXT_SA was expected" );
+      return TCCIPsec__Result::socketError;
+    }
+
+  } catch ( Error err ) {
+    TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: Leave (error)" );
+    return err.result;
+  }
+  TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SPI_get: Leave (ok)" );
+  return TCCIPsec__Result::ok;
+}
+
+TCCIPsec__Result f__IPsec__SADB__add_or_update (
+    int method,
     const CHARSTRING& srcAddress,
     const CHARSTRING& dstAddress,
     const TCCIPsec__Protocol& protocol,
@@ -348,7 +429,7 @@ TCCIPsec__Result f__IPsec__SADB__add (
       case TCCIPsec__Algorithm::ALT_encr:
         encrAlgo = TCCIPsec__EAlgo::enum_type ( alg.encr().algo() );
         encrKeyLen = castKey ( alg.encr().key(), encrKey );
-	if (setparity) f__IPsec__setParityBits((unsigned char*)encrKey, encrKeyLen);
+    if (setparity) f__IPsec__setParityBits((unsigned char*)encrKey, encrKeyLen);
         break;
       case TCCIPsec__Algorithm::ALT_auth:
         authAlgo = TCCIPsec__AAlgo::enum_type ( alg.auth().algo() );
@@ -359,7 +440,7 @@ TCCIPsec__Result f__IPsec__SADB__add (
         encrKeyLen = castKey ( alg.encrAndAuth().ekey(), encrKey );
         authAlgo = TCCIPsec__AAlgo::enum_type ( alg.encrAndAuth().aalgo() );
         authKeyLen = castKey ( alg.encrAndAuth().akey(), authKey );
-	if (setparity) f__IPsec__setParityBits((unsigned char*)encrKey, encrKeyLen);
+    if (setparity) f__IPsec__setParityBits((unsigned char*)encrKey, encrKeyLen);
         break;
       default:
         throw Error ( TCCIPsec__Result::parameterInvalid );
@@ -437,7 +518,7 @@ TCCIPsec__Result f__IPsec__SADB__add (
             len += sizeof ( * sa2Ext );
 
             if (useNatt) {
-                
+
                 /*NAT-T type*/
                 sadb_x_nat_t_type  * natt_type=0;
                 natt_type = ( sadb_x_nat_t_type* ) ( msg + len );
@@ -446,7 +527,7 @@ TCCIPsec__Result f__IPsec__SADB__add (
                 natt_type->sadb_x_nat_t_type_exttype = SADB_X_EXT_NAT_T_TYPE;
                 natt_type->sadb_x_nat_t_type_type = UDP_ENCAP_ESPINUDP;
                 len += sizeof( *natt_type );
-                  
+
                 /*NAT-T source port */
                 sadb_x_nat_t_port *natt_port=0;
                 natt_port = (sadb_x_nat_t_port *) (msg + len);
@@ -463,9 +544,9 @@ TCCIPsec__Result f__IPsec__SADB__add (
                 natt_port->sadb_x_nat_t_port_exttype = SADB_X_EXT_NAT_T_DPORT;
                 natt_port->sadb_x_nat_t_port_port = htons(DEFAULT_NATT_PORT);
                 len += sizeof(* natt_port);
-            
+
             }
- 
+
             break;
           }
 #else
@@ -475,7 +556,7 @@ TCCIPsec__Result f__IPsec__SADB__add (
           throw Error ( TCCIPsec__Result::parameterInvalid );
       }
     }
-    setSadbMsg ( & msg, SADB_ADD, protocol, len / 8, pfKey.getSeq () );
+    setSadbMsg ( & msg, method, protocol, len / 8, pfKey.getSeq () );
     pfKey.send ( & msg, len );
     pfKey.checkAnswer ();
   } catch ( Error err ) {
@@ -484,6 +565,34 @@ TCCIPsec__Result f__IPsec__SADB__add (
   }
   TTCN_Logger::log ( TTCN_DEBUG, "TCCIPsec: f__IPsec__SADB__add: Leave (ok)" );
   return TCCIPsec__Result::ok;
+}
+
+TCCIPsec__Result f__IPsec__SADB__update (
+    const CHARSTRING& srcAddress,
+    const CHARSTRING& dstAddress,
+    const TCCIPsec__Protocol& protocol,
+    const INTEGER& spi,
+    const TCCIPsec__ExtensionList& extensionList,
+    const TCCIPsec__Algorithm& alg,
+    const BOOLEAN& setparitybit = 0,
+    const BOOLEAN& useNatt = 0,
+    const TCCIPsec__IPsecMode& ipSecMode = TCCIPsec__IPsecMode::anyMode)
+{
+  return f__IPsec__SADB__add_or_update(SADB_UPDATE, srcAddress, dstAddress, protocol, spi, extensionList, alg, setparitybit, useNatt, ipSecMode);
+}
+
+TCCIPsec__Result f__IPsec__SADB__add (
+    const CHARSTRING& srcAddress,
+    const CHARSTRING& dstAddress,
+    const TCCIPsec__Protocol& protocol,
+    const INTEGER& spi,
+    const TCCIPsec__ExtensionList& extensionList,
+    const TCCIPsec__Algorithm& alg,
+    const BOOLEAN& setparitybit = 0,
+    const BOOLEAN& useNatt = 0,
+    const TCCIPsec__IPsecMode& ipSecMode = TCCIPsec__IPsecMode::anyMode)
+{
+  return f__IPsec__SADB__add_or_update(SADB_ADD, srcAddress, dstAddress, protocol, spi, extensionList, alg, setparitybit, useNatt, ipSecMode);
 }
 
 TCCIPsec__Result f__IPsec__SADB__delete (
@@ -703,6 +812,38 @@ TCCIPsec__Result f__IPsec__SPDB__flush ()
 #endif // defined USE_IPSEC || defined USE_KAME_IPSEC
 
 #if ! defined USE_IPSEC && ! defined USE_KAME_IPSEC
+
+TCCIPsec__Result f__IPsec__SPI__get (
+    const CHARSTRING& srcAddress,
+    const CHARSTRING& dstAddress,
+    const TCCIPsec__Protocol& protocol,
+    INTEGER& spi)
+{
+  static bool first = true;
+  if ( first ) {
+    TTCN_Logger::log ( TTCN_WARNING, "TCCIPsec: f__IPsec__SPI__get: IPsec support was not specified during compilation" );
+    first = false;
+  }
+  return TCCIPsec__Result::notImplemented;
+}
+TCCIPsec__Result f__IPsec__SADB__update (
+    const CHARSTRING& srcAddress,
+    const CHARSTRING& dstAddress,
+    const TCCIPsec__Protocol& protocol,
+    const INTEGER& spi,
+    const TCCIPsec__ExtensionList& extensionList,
+    const TCCIPsec__Algorithm& alg,
+    const BOOLEAN& setparitybit = 0,
+    const BOOLEAN& useNatt = 0,
+    const TCCIPsec__IPsecMode& ipSecMode = TCCIPsec__IPsecMode::anyMode)
+{
+  static bool first = true;
+  if ( first ) {
+    TTCN_Logger::log ( TTCN_WARNING, "TCCIPsec: f__IPsec__SADB__update: IPsec support was not specified during compilation" );
+    first = false;
+  }
+  return TCCIPsec__Result::notImplemented;
+}
 TCCIPsec__Result f__IPsec__SADB__add (
     const CHARSTRING& srcAddress,
     const CHARSTRING& dstAddress,

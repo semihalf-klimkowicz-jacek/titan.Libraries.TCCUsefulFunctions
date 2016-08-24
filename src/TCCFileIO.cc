@@ -1,16 +1,17 @@
-/******************************************************************************
-* Copyright (c) 2004, 2015  Ericsson AB
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-
-******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Copyright Test Competence Center (TCC) ETH 2009                           //
+//                                                                           //
+// The copyright to the computer  program(s) herein  is the property of TCC. //
+// The program(s) may be used and/or copied only with the written permission //
+// of TCC or in accordance with  the terms and conditions  stipulated in the //
+// agreement/contract under which the program(s) have been supplied          //
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCFileIO.cc
 //  Description:        TCC Useful Functions: FileIO Functions
-//  Rev:                R22B
+//  Rev:                R25A
 //  Prodnr:             CNL 113 472
 //  Updated:            2009-04-09
 //  Contact:            http://ttcn.ericsson.se
@@ -1122,6 +1123,41 @@ BOOLEAN f__FIO__fileOrDirExists(const CHARSTRING& filename ) {
     return TRUE ;
   }
   return FALSE ;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_FIO_rename
+//
+//  Purpose:
+//    Renames a file.
+//
+//  Parameters:
+//    pl__old__name - *in* *charstring* - file/directory that needs to be renamed
+//    pl__new__name - *in* *charstring* - new name of the file/directory
+//
+//  Return Value:
+//    boolean - indicate that the rename procedure was successful or not
+//
+//  Errors:
+//    In the case of unsuccessful operation the cause of the error can be
+//    queried by the f_FIO_get_error_code, f_FIO_get_error_string functions
+//
+//  Detailed description:
+//    Permissions needed to rename the file/directory.
+//    The file or directory, that would be renamed, should exist, otherwise it
+//    returns false. The rename procedure fails in case of the target path is
+//    not exist.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+BOOLEAN f__FIO__rename(const CHARSTRING& pl__old__name, const CHARSTRING& pl__new__name)
+{
+  if(rename((const char *)(pl__old__name), (const char *)(pl__new__name)))
+  {
+    f__FIO__realize__error("f_FIO_rename", "Cannot rename the given file or directory.", __FILE__, __LINE__);
+    return FALSE;
+  } else
+    return TRUE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

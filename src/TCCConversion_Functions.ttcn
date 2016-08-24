@@ -1,18 +1,18 @@
-/******************************************************************************
-* Copyright (c) 2004, 2015  Ericsson AB
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-
-******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Copyright Test Competence Center (TCC) ETH 2016                           //
+//                                                                           //
+// The copyright to the computer  program(s) herein  is the property of TCC. //
+// The program(s) may be used and/or copied only with the written permission //
+// of TCC or in accordance with  the terms and conditions  stipulated in the //
+// agreement/contract under which the program(s) have been supplied          //
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCConversion_Functions.ttcn
 //  Description:        TCC Useful Functions: Conversion Functions
-//  Rev:                R22B
+//  Rev:                R25A
 //  Prodnr:             CNL 113 472
-//  Updated:            2013-09-23
 //  Contact:            http://ttcn.ericsson.se
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -552,7 +552,7 @@ function f_substr_all_tokens(in charstring str,
 //    because the function requires a type compatibility support for record of types
 //
 ///////////////////////////////////////////////////////////////////////////////
-
+const TCC_Conversion_ch_list TCC_Converion_ch_empty_list := {};
 function f_substr_all_tokens_oct(in octetstring str,
   in octetstring begin_token,
   in octetstring end_token) return TCC_Conversion_ch_list
@@ -573,8 +573,7 @@ function f_substr_all_tokens_oct(in octetstring str,
       if (endIndex > -1) {
         token := substr(str, startIndex, endIndex - startIndex);
         if(not f_oct2char_safe(token, result[sizeof(result)])) {// append to string list
-          
-          return valueof(TCC_Conversion_ch_list:{})
+          return TCC_Converion_ch_empty_list;
         }
         startIndex := endIndex + lengthof(end_token);
       } else {
@@ -667,32 +666,7 @@ external function f_strstr_oct(in octetstring s1,
 ///////////////////////////////////////////////////////////////////////////////
 //type record of integer IntegerList;
 function f_OctetIpv4(in charstring pl_ip) return octetstring{
-//  var IntegerList ret := {};
-  var octetstring oret := ''O;
-  var integer octet := 0;
-  var integer exp := 1;
-//  var integer k := 3;
-  for (var integer i:=lengthof(pl_ip)-1; i>-1;i:=i-1){
-    var integer ch := char2int(pl_ip[i]);
-    if (ch == 46){ // =="."
-      //ret[k] := octet;
-      oret := int2oct(octet,1) & oret;
-//      k:=k-1;
-      exp := 1;
-      octet := 0;
-    } else if(ch > 47 and ch < 58){ // isnum
-      octet := octet + str2int(pl_ip[i]) * exp;
-      if (i == 0) {
-        //ret[k] := octet;
-        oret := int2oct(octet,1) & oret;
-        break;
-      }
-      exp := exp * 10;
-    } else {
-      return ''O;
-    }
-  }
-  return oret;//(int2oct(ret[0],1) & int2oct(ret[1],1) & int2oct(ret[2],1) & int2oct(ret[3],1));
+  return f_convertIPAddrToBinary(pl_ip);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -953,7 +927,49 @@ public function f_str2int(in charstring pl_str) return integer {
   return str2int(substr(pl_str,  vl_zeros, lengthof(pl_str) - vl_zeros));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_prePadString
+//
+//  Purpose:
+//    Pads a string to fit in a specified length (pl_length).
+//    The pl_string will be prepended by the first character of pl_pad
+//    to reach the length specified by pl_length.
+//      The result string will be placed in pl_result, and function will
+//        return true.
+//      If the length of pl_string is longer than pl_length, the function
+//        will return false, as it cannot do the paddig.
+//
+//  Parameters:
+//    pl_string - *in* *charstring* - the string to augment
+//    pl_pad - *in* *charstring* - character to use for padding
+//    pl_length - *in* *integer* - desired length of result string
+//    pl_result - *inout* *charstring* - result string
+//
+//  Return Value:
+//    boolean - true if successful
+//
+//  Errors:
+//    -
+//
+//  Detailed description:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+public function f_prePadString(charstring pl_string, charstring pl_pad, integer pl_length, inout charstring pl_result)
+return boolean
+{
+  if( pl_length < lengthof(pl_string) ){
+    return false;
+  }
+  pl_result := "";
+  for(var integer vl_i := 0; vl_i<pl_length-lengthof(pl_string); vl_i := vl_i+1){
+    pl_result := pl_result & pl_pad[0];
+  }
+  pl_result := pl_result & pl_string;
+  return true;
+}
+
 }//end of module
 with {
-extension "version R22B"}
+extension "version R25A"}
 
