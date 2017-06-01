@@ -1,0 +1,578 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2000-2017 Ericsson Telecom AB
+//
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCIPsec_XFRM_Definitions.ttcn
+//  Description:        TCC Useful Functions: IPsec XFRM Functions
+//  Rev:                R30A
+//  Prodnr:             CNL 113 472
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module TCCIPsec_XFRM_Definitions{
+  external function f_XFRM_add_sa(in SAAddInfo pl_sa_info) return XFRM_Result;
+  external function f_XFRM_delete_sa(in SADelInfo pl_sa_info) return XFRM_Result;
+  external function f_XFRM_flush_sa() return XFRM_Result;
+  external function f_XFRM_add_policy(in SPAddInfo pl_pol_info) return XFRM_Result;
+  external function f_XFRM_delete_policy(in SPDelInfo pl_pol_info) return XFRM_Result;
+  external function f_XFRM_flush_policy() return XFRM_Result;
+  external function f_XFRM_allocate_SPI(in AllocSPI_Info pl_AllocSPI_info, inout integer pl_spi) return XFRM_Result; 
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: NetworkAddress
+//
+//  Purpose:
+//    Defines a record for using IP addresses with port and prefix number.
+//
+//  Elements:
+//    ip_address     -  An IPv4 or IPv6 address (string).
+//                      Not valid address form can result an error in the database.
+//                      For example not inserting the new database entry.
+//
+//    port_number    -  An integer used to specify a given port for the policies.
+//    address_prefix -  An integer indivating the network prefix for the address.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type record NetworkAddress{
+  charstring  ip_address,
+  integer     port_number optional,
+  integer     address_prefix optional
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: TransportProtocol
+//
+//  Purpose:
+//    Defines an enumerated value for selecting the Transport Protocol.
+//    For default value, the ANY choice is used in the protocol.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated TransportProtocol{
+  ANY    (0),
+  ICMP   (1),  //IPPROTO_ICMP
+  TCP    (6),  //IPPROTO_TCP
+  UDP    (17), //IPPROTO_UDP
+  DCCP   (33), //IPPROTO_DCCP
+  GRE    (47), //IPPROTO_GRE
+  ICMPV6 (58), //IPPROTO_ICMPV6
+  SCTP   (132) //IPPROTO_SCTP
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: PolicyDirection
+//
+//  Purpose:
+//    Defines the direction of a policy used on the packets.
+//
+/////////////////////////////////////////////////////////////////////////////////
+type enumerated PolicyDirection{
+  IN  (0),  //XFRM_POLICY_IN
+  OUT (1),  //XFRM_POLICY_OUT
+  FWD (2)   //XFRM_POLICY_FWD
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: IPsecAlgorithms
+//
+//  Purpose:
+//    Defines the encryption and authentication methods used in the Security 
+//    Associations.
+//
+//  Elements:
+//    auth  -  Defines an authentication method and the key used.
+//    enc    -  Defines an encryption method and the key used.
+//
+//  Comment:
+//    Using Encryption without authentication is strongly discouraged, because
+//     it is insecure.
+/////////////////////////////////////////////////////////////////////////////////
+type record IPsecAlgorithms{
+  Authentication  auth optional,
+  Encryption      enc optional
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: IPSecProtocol
+//
+//  Purpose:
+//    Defines the IPSec protocol used.
+//
+//  Elements:
+//    ESP  -  Encapsulating Security Payloads: it provides origin authenticity, 
+//            integrity and confidentiality protection of packets.
+//    AH   -  Authentication Header: It guarantees connectionless integrity and data
+//            origin authentication of IP packets
+//    COMP -  IP Payload Compression: a low level compression protocol for IP datagrams
+//            Compression must be done before fragmenting or encrypting the packet.
+/////////////////////////////////////////////////////////////////////////////////
+type enumerated IPSecProtocol{
+  ESP(50),  //IPPROTO_ESP
+  AH(51),   //IPPROTO_AH
+  COMP(108) //IPPROTO_COMP
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: IPSecKey
+//
+//  Purpose:
+//    Defines a charstring or hexstring for the key used in ESP or AH.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type union IPSecKey{
+  charstring  text,
+  hexstring    hex
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: Authentication
+//
+//  Purpose:
+//    Defines the name of the authentication algorithm and the key used.
+//
+//  Elements:
+//    name - An enumerated value for selecting the algorithm
+//    key  - The used key for the authentication. It can be given in charstring
+//           or hexstring value.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type record Authentication{
+  AuthenticationAlgorithms name,
+  IPSecKey                 key
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: AuthenticationAlgorithms
+//
+//  Purpose:
+//    Defines an enumerated value for selecting the authentication alogrithm.
+//    
+//  Comment:
+//    The key lengths are next to each possible algorithm.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated AuthenticationAlgorithms{
+  NULL_AUTH    (0),
+  HMAC_MD5     (1),    //key length: 128 bits 
+  HMAC_SHA1    (2),    //key length: 160 bits 
+  HMAC_SHA256  (3),    //key length: 256 bits
+  HMAC_SHA384  (4),    //key length: 384 bits
+  HMAC_SHA512  (5),    //key length: 512 bits
+  HMAC_RMD160  (6)      //key length: 160 bits 
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: Encryption
+//
+//  Purpose:
+//    Defines the name of the encryption algorithm and the key used.
+//
+//  Elements:
+//    name - An enumerated value for selecting the algorithm
+//    key  - The used key for the encryption. It can be given in charstring
+//           or hexstring value.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type record Encryption{
+  EncryptionAlgorithms name,
+  IPSecKey             key
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+//  Type: EncryptionAlgorithms
+//
+//  Purpose:
+//    Defines an enumerated value for selecting the encryption alogrithm.
+//    
+//  Comment:
+//    The key lengths are next to each possible algorithm.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated EncryptionAlgorithms{
+  NULL_ENCR    (0),
+  CBC_AES      (1),    //key length: 128 bits 
+  CBC_DES      (2),    //key length:   64 bits 
+  CBC_3DES     (3),    //key length: 192 bits  
+  CBC_CAST5    (4),    //key length: 40-128 bits
+  CBC_BLOWFISH (5),    //key length: 40-448 bits
+  CBC_SERPENT  (6),    //key length: 128-256 bits
+  CBC_CAMELLIA (7),    //key length: 128-256 bits
+  CBC_TWOFISH  (8)      //key length: 128-256 bits
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Mode
+//
+//  Purpose:
+//    Defines an enumerated value for selecting the mode of the operation for the
+//    transform protocol..
+//
+//  Comment:
+//    BEET - Bound End-to-End Tunnel is for ESP only.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated Mode{
+  TRANSPORT (0),  //XFRM_MODE_TRANSPORT
+  TUNNEL    (1),  //XFRM_MODE_TUNNEL
+  BEET      (4)   //XFRM_MODE_BEET
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Share
+//
+//  Purpose:
+//    Defines an enumerated value for selecting sharing mode.
+//
+//  Comment:
+//    Should be ANY. In the current version, not used by the kernel, but required 
+//    for forward compatibility..
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated Share{
+  ANY     (0),    //XFRM_SHARE_ANY: No limitations(default value)
+  SESSION (1),    //XFRM_SHARE_SESSION: For this session only
+  USER    (2),    //XFRM_SHARE_USER: For this user only
+  UNIQUE  (3)     //XFRM_SHARE_UNIQUE: Use once
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Action
+//
+//  Purpose:
+//    Defines an enumerated value for allowing/blocking traffic
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated Action{
+  ALLOW  (0),  //XFRM_POLICY_ALLOW
+  BLOCK  (1)   //XFRM_POLICY_BLOCK
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Level
+//
+//  Purpose:
+//    Defines an enumerated value for setting the level of the policy
+//
+//  Comment:
+//    use       - Indicates, that the policy should be used if there is an
+//                appropriate SA avaiable. (else the policy is bypassed)
+//    required  -  The policy has to be used.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated Level{
+  required (0),
+  use      (1)
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Template
+//
+//  Purpose:
+//    Defines a record for the policy template. The behavior of the policy can be 
+//    described with the templates. For example, the use of AH or ESP can be set 
+//    via the templates.
+//
+//  Elements:
+//    ip_version - Specifies the IP version
+//    src        - Source address of the tunnel. Ignored in other cases.
+//    dst        - Destination of the tunnel. It may be zero for transport mode.
+//    spi        - Security Parameter Index, it is used to select the appropriate SA.
+//                 The default value of SPI can be zero.
+//    reqid      - Association between the policies and the SAs.(If a policy matches 
+//                 on a packet, then it will start searching for a matching SA based 
+//                 on the reqid value.)
+//    share      - Selects the share mode(Default value: ANY, probably not used by 
+//                 the kernel, but it is required for forward compatibility.)
+//    ipsec      - Defines the IPSec protocol used.
+//    mode       - Transform mode.
+//    level      - Sets the level of the policy.
+///////////////////////////////////////////////////////////////////////////////////
+type record Template{
+  NetworkAddress src optional,
+  NetworkAddress dst optional,
+  integer        spi,
+  integer        reqid optional,
+  Share          share optional,
+  IPSecProtocol  ipsec,
+  Mode           mode,
+  Level          level
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Template_List
+//
+//  Purpose:
+//    Defines a list of Templates.
+//
+///////////////////////////////////////////////////////////////////////////////////
+type set of Template Template_List;
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Limits
+//
+//  Purpose:
+//    With the help of th is record, time, packet and byte limits can be set for
+//    the policies and the SAs.
+//
+//  Comment:
+//    soft vs hard: If the soft limit expire, then rekeying is required. If the 
+//                  hard limit expires, the entry from the database will be deleted.
+//
+//  Elements:
+//    byte_limit          - Defines a limit based on the sent/recieved bytes
+//    packet_limit        - Defines a limit based on the sent/recieved packets
+//    add_expires_seconds - Defines a limit based on the time elapsed since insertion/update
+///////////////////////////////////////////////////////////////////////////////////
+type record Limits{
+  integer  soft_byte_limit optional,
+  integer  hard_byte_limit optional,
+  integer  soft_packet_limit optional,
+  integer  hard_packet_limit optional,
+  integer  soft_add_expires_seconds optional,
+  integer  hard_add_expires_seconds optional,
+  integer  soft_use_expires_seconds optional,
+  integer  hard_use_expires_seconds optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: Encap_type
+//
+//  Purpose:
+//    Encapsulates packets with protocol espinudp or espinudp-non-ike
+//
+//  Comment:
+//    It uses source port, destination port and original address.
+///////////////////////////////////////////////////////////////////////////////////
+type enumerated Encap_type{
+  ESPINUDP_NON_IKE  (1),
+  ESPINUDP          (2) //Default value should be this
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: NAT_T
+//
+//  Purpose:
+//    Enables the usage of Network Address Traversal for the IPsec tunnel
+//
+//  Elements:
+//    encap_type - Defines encapsulation protocol
+//    sport      - Source port --> "hole" in the wall
+//    dport      - Destination port --> "hole" in the wall
+//    oa         - Original Adress
+///////////////////////////////////////////////////////////////////////////////////
+type record NAT_T{
+  Encap_type  encap_type,   //Default value should be ESPINUDP
+  integer     sport,        //Default value should be 4500
+  integer     dport,        //Default value should be 4500
+  charstring  oa optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SAAdditionalInfo
+//
+//  Purpose:
+//    Defines additional information regarding the Security Association creation.
+//    These are not mandatory parameters for creating a valid SA.
+//
+//  Elements:
+//    sel_src and sel_dst - Selector address that is used to identify if a packet
+//                          requires IPsec related actions.
+//    reqid               - Also serves as an identification between the SP and SA
+//    limits              - Lifetime limits for the Security Association
+///////////////////////////////////////////////////////////////////////////////////
+type record SAAdditionalInfo{
+  NetworkAddress    sel_src optional,
+  NetworkAddress    sel_dst optional,
+  integer           reqid optional,   //Policy<->SA connection, else selector
+  Limits            limits optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SAAddInfo
+//
+//  Purpose:
+//    Defines the basic information for creating a Security Assoctiation.
+//
+//  Elements:
+//    update      - if set to true and the SA already exists, it will be updated/overwritten
+//                  if not exists, it will be created.
+//    protocol    - Defines the used transport protocol
+//    ipsec       - Defines the type of IPsec usage
+//    ipsec_agos  - Defines the algorithms and keys
+//    mode        - IPsec mode (tunneling or transport)
+//    spi         - Security Parameter Index
+//    src         - Source address
+//    dst         - Destination adress
+//    nat_t       - Enable NAT
+//    info        - Defines additional settings
+///////////////////////////////////////////////////////////////////////////////////
+type record SAAddInfo{
+  boolean           update optional,
+  TransportProtocol protocol,
+  IPSecProtocol     ipsec,
+  IPsecAlgorithms   ipsec_algos,
+  Mode              mode,
+  integer           spi,
+  NetworkAddress    src,
+  NetworkAddress    dst,
+  NAT_T              nat_t optional,  
+  SAAdditionalInfo  info optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SADelInfo
+//
+//  Purpose:
+//    Defines the basic information toidentiy and remove a Security Assoctiation.
+//
+//  Elements:
+//    protocol    - Defines the used transport protocol
+//    spi         - Security Parameter Index
+//    src         - Source address
+//    dst         - Destination adress
+///////////////////////////////////////////////////////////////////////////////////
+type record SADelInfo{
+  IPSecProtocol     proto,
+  integer           spi,
+  NetworkAddress    src,
+  NetworkAddress    dst
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SPAdditionalInfo
+//
+//  Purpose:
+//    Defines additional information regarding the Security Policy creation.
+//    These are not mandatory parameters for creating a valid SP.
+//
+//  Elements:
+//    share           - Defines the scope of the policy
+//    priority        - Enables prioritization of SPs
+//    policy_action   - Policy rule (ALLOW or BLOCK)
+//    index           - Used for identification, similar to the selector
+//    interface_index - Enables the usage of an SP only for a specific interface
+//    limits          - Lifetime limits for the Security Policy  
+///////////////////////////////////////////////////////////////////////////////////
+type record SPAdditionalInfo{
+  Share    share optional,
+  integer priority optional,
+  Action  policy_action optional,
+  integer  index optional,
+  integer  interface_index optional,
+  Limits  limits optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SPAddInfo
+//
+//  Purpose:
+//    Defines the basic information for creating a Security Policy.
+//
+//  Elements:
+//    update    - if set to true and the SP already exists, it will be updated/overwritten
+//                if not exists, it will be created.
+//    protocol  - Defines the used transport protocol
+//    src       - Source address
+//    dst       - Destination adress
+//    dir       - Direction of the traffic
+//    tmpl      - Defines Templates for the SP that is used for idetification
+//    info      - Defines additional settings
+///////////////////////////////////////////////////////////////////////////////////
+type record SPAddInfo{
+  boolean           update optional,
+  TransportProtocol protocol,
+  NetworkAddress    src,
+  NetworkAddress    dst,
+  PolicyDirection   dir,
+  Template_List      tmpl,
+  SPAdditionalInfo  info optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SPDelInfo
+//
+//  Purpose:
+//    Defines the basic information for identifying and removing a Security Policy.
+//
+//  Elements:
+//    dir       - Direction of the traffic
+//    protocol  - Defines the used transport protocol
+//    src       - Source address
+//    dst       - Destination adress
+///////////////////////////////////////////////////////////////////////////////////
+type record SPDelInfo{
+  PolicyDirection   dir,
+  TransportProtocol protocol,
+  NetworkAddress    src,
+  NetworkAddress    dst
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: SPI_Range
+//
+//  Purpose:
+//    Minimum and maximum value for SPI
+///////////////////////////////////////////////////////////////////////////////////
+type record SPI_Range{
+  integer min,
+  integer max
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: AllocSPI_Info
+//
+//  Purpose:
+//    Defines the basic information for allocating an SPI value.
+//
+//  Elements:
+//    src       - Source address
+//    dst       - Destination adress
+//    protocol  - IPsec protocol
+//    range     - Range of the SPI
+///////////////////////////////////////////////////////////////////////////////////
+type record AllocSPI_Info{
+  charstring    src,
+  charstring    dst,
+  IPSecProtocol protocol,
+  SPI_Range     range optional
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//  Type: XFRM_Result
+//
+//  Purpose:
+//    Serves as a return value for the TTCN-3 functions. It contains general result
+//    and in case of an error, some description on the error.
+//
+//  Elements:
+//    result  - If the execution is successful,the value is 0.
+//    msg     - If error occurs before reaching the kernel or the error is in the
+//              communications with the kernel, then this contains information on it.
+//              If the reponse is negative, then it contains the message from the kernel.
+///////////////////////////////////////////////////////////////////////////////////
+type record XFRM_Result{
+  integer result,
+  charstring msg
+}
+  
+}

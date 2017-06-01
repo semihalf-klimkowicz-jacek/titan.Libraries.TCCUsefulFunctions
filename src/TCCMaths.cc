@@ -1,20 +1,17 @@
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// Copyright Test Competence Center (TCC) ETH 2007                           //
-//                                                                           //
-// The copyright to the computer  program(s) herein  is the property of TCC. //
-// The program(s) may be used and/or copied only with the written permission //
-// of TCC or in accordance with  the terms and conditions  stipulated in the //
-// agreement/contract under which the program(s) have been supplied          //
-//                                                                           //
+//
+// Copyright (c) 2000-2017 Ericsson Telecom AB
+//
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCMaths.cc
 //  Description:        TCC Useful Functions: Maths Functions.
-//  Rev:                R25A
+//  Rev:                R30A
 //  Prodnr:             CNL 113 472
-//  Updated:            2007-03-07
-//  Contact:            http://ttcn.ericsson.se
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -25,6 +22,35 @@
 using namespace TCCMaths__GenericTypes;
 namespace TCCMaths__Functions {
 
+///////////////////////////////////////////////////////////////////////////////
+//template for count min or max value of list
+///////////////////////////////////////////////////////////////////////////////
+template<typename T_list>
+T_list f_minmax(const T_list& list, bool min)
+{
+  T_list toret;
+  toret[1] = -1;
+  toret[0] = 0;
+
+  int len;
+  if(!list.is_bound() or ((len = list.size_of()) == 0))
+  {
+    return toret;
+  }
+
+  toret[0] = list[0];
+  toret[1] = 0;
+
+  for(int i=1 ; i<len ; ++i)
+  {
+    if(min?toret[0] > list[i]:toret[0] < list[i])
+    {
+      toret[0] = list[i];
+      toret[1] = i;
+    }
+  }
+  return toret;
+}
 ///////////////////////////////////////////////////////////////////////////////
 //  Function: f__maxIL
 //
@@ -47,22 +73,7 @@ namespace TCCMaths__Functions {
 ///////////////////////////////////////////////////////////////////////////////
 IntegerList f__maxIL(const IntegerList& ilist)
 {
-    IntegerList toret;
-
-    toret[0] = 0;
-    toret[1] = -1;
-    if(!ilist.is_bound()) return toret;
-    int len = ilist.size_of();
-
-    int m = - 0xffff;
-    for(int i=0;i<len;i++)
-        if(ilist[i]>m)
-        {
-            m = ilist[i];
-            toret[1] = i;
-        }
-    toret[0] = m;
-    return toret;
+  return f_minmax(ilist, false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -88,20 +99,7 @@ IntegerList f__maxIL(const IntegerList& ilist)
 ///////////////////////////////////////////////////////////////////////////////
 IntegerList f__minIL(const IntegerList& ilist)
 {
-    IntegerList toret;
-    toret[0] = 0;
-    toret[1] = -1;
-    if(!ilist.is_bound()) return toret;
-    int len = ilist.size_of();
-    int m = 0xffff;
-    for(int i=0;i<len;i++)
-        if(ilist[i]<m)
-        {
-            m = ilist[i];
-            toret[1] = i;
-        }
-    toret[0] = m;
-    return toret;
+  return f_minmax(ilist, true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,21 +125,7 @@ IntegerList f__minIL(const IntegerList& ilist)
 ///////////////////////////////////////////////////////////////////////////////
 FloatList f__maxFL(const FloatList& flist)
 {
-    FloatList toret;
-    toret[0] = 0.0;
-    toret[1] = -1.0;
-    if(!flist.is_bound()) return toret;
-    int i, len = flist.size_of();
-
-    double m = -1.7E308;
-    for(i=0;i<len;i++)
-        if(flist[i]>m)
-        {
-            m = flist[i];
-            toret[1] = (double)i;
-        }
-    toret[0] = m;
-    return toret;
+  return f_minmax(flist,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -167,20 +151,27 @@ FloatList f__maxFL(const FloatList& flist)
 ///////////////////////////////////////////////////////////////////////////////
 FloatList f__minFL(const FloatList& flist)
 {
-    FloatList toret;
-    toret[0] = 0.0;
-    toret[1] = -1.0;
-    if(!flist.is_bound()) return toret;
-    unsigned int i, len = (unsigned int)flist.size_of();
-    double m = 1.7E308;
-    for(i=0;i<len;i++)
-        if(flist[i]<m)
-        {
-            m = flist[i];
-            toret[1] = (double)i;
-        }
-    toret[0] = m;
-    return toret;
+  return f_minmax(flist, true);
+}
+///////////////////////////////////////////////////////////////////////////////
+//template for count average value of list
+///////////////////////////////////////////////////////////////////////////////
+template<typename T_list>
+FLOAT f_average(const T_list& list)
+{
+  int len;
+  if(!list.is_bound() or ((len = list.size_of()) == 0))
+  {
+    return 0.0;
+  }
+
+  int i;
+  double toret = 0.0;
+  for(i=0;i<len;++i)
+  {
+    toret += (double)list[i];
+  }
+  return toret/(double)len;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -204,12 +195,7 @@ FloatList f__minFL(const FloatList& flist)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__averageFL(const FloatList& flist)
 {
-    if(!flist.is_bound()) return FLOAT();
-    double toret = 0.0;
-    int i, len = flist.size_of();
-    if(len==0) return FLOAT();
-    for(i=0;i<len;i++) toret += flist[i];
-    return FLOAT(toret / (double)len);
+  return f_average(flist);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -233,11 +219,110 @@ FLOAT f__averageFL(const FloatList& flist)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__averageIL(const IntegerList& ilist)
 {
-    int toret = 0;
-    int i, len = ilist.size_of();
-    if(len == 0) return FLOAT();
-    for(i=0;i<len;i++) toret += ilist[i];
-    return FLOAT(((double)toret / (double)len));
+  return f_average(ilist);
+}
+///////////////////////////////////////////////////////////////////////////////
+// template for update lists
+///////////////////////////////////////////////////////////////////////////////
+template<typename T_list>
+void f_update(T_list& head, const T_list& tail)
+{
+  if(!tail.is_bound())
+  {
+    return;
+  }
+
+  unsigned int i, count, len = tail.size_of();
+  if(head.is_bound())
+  {
+    count = (unsigned int)head.size_of();
+  } else {
+    count = 0;
+  }
+  head.set_size(count + len);
+  for(i=0;i<len;++i)
+  {
+    head[count] = tail[i];
+    ++count;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f__updateFL
+//
+//  Purpose:
+//    Append tail to the end of head (head return as inout)
+//
+//  Parameters:
+//    head - *in* <FloatList> - first part of the float list
+//    tail - *in* <FloatList> - second part of the float list
+//
+//  Return Value:
+//    -
+//
+//  Errors:
+//    -
+//
+//  Detailed description:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+void f__updateFL(FloatList& head, const FloatList& tail)
+{
+  f_update(head,tail);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f__updateIL
+//
+//  Purpose:
+//     Append tail to the end of head (head return as inout)
+//
+//  Parameters:
+//    head - *in* <IntegerList> - first part of the integer list
+//    tail - *in* <IntegerList> - second part of the integer list
+//
+//  Return Value:
+//    -
+//
+//  Errors:
+//    -
+//
+//  Detailed description:
+//    -
+//
+///////////////////////////////////////////////////////////////////////////////
+void f__updateIL(IntegerList& head, const IntegerList& tail)
+{
+  f_update(head,tail);
+}
+///////////////////////////////////////////////////////////////////////////////
+//template for count corrected standard deviation
+///////////////////////////////////////////////////////////////////////////////
+template<typename T_list>
+FLOAT f_std(const T_list& list, const FLOAT& in_u = FLOAT())
+{
+  int len;
+  if(!list.is_bound() or ((len = list.size_of()) < 2))
+  {
+    return 0.0;
+  }
+
+  double u, toret = 0.0;
+  if (!in_u.is_bound())
+  {
+    u = f_average(list);
+  } else {
+    u = in_u;
+  }
+  double x;
+  for(int i=0;i<len;++i)
+  {
+    x = (double)list[i]-u;
+    toret += x*x;
+  }
+
+  return pow(toret/(double)(len-1),0.5);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -268,13 +353,7 @@ FLOAT f__averageIL(const IntegerList& ilist)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__stdFL(const FloatList& flist)
 {
-    if(!flist.is_bound()) return FLOAT();
-    double toret = 0.0;
-    int i, len = flist.size_of();
-    if(len == 0) return FLOAT();
-    double u = (double)TCCMaths__Functions::f__averageFL(flist);
-    for(i=0;i<len;i++) toret += pow((double)flist[i]-u,2.0);
-    return FLOAT(pow(toret/((double)len-1),0.5));
+  return f_std(flist);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -310,80 +389,7 @@ FLOAT f__stdFL(const FloatList& flist)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__stdFLL(const FloatList& flist, const FLOAT& u)
 {
-    if(!flist.is_bound()) FLOAT();
-    double toret = 0.0;
-    int i, len = flist.size_of();
-    if(len == 0) return FLOAT();
-    for(i=0;i<len;i++) toret += pow((double)flist[i]-(double)u,2.0);
-    return FLOAT(pow(toret/((double)(len-1)),0.5));
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//  Function: f__updateFL
-//
-//  Purpose:
-//    Append tail to the end of head (head return as inout)
-//
-//  Parameters:
-//    head - *in* <FloatList> - first part of the float list
-//    tail - *in* <FloatList> - second part of the float list
-//
-//  Return Value:
-//    -
-//
-//  Errors:
-//    -
-//
-//  Detailed description:
-//    -
-//
-///////////////////////////////////////////////////////////////////////////////
-void f__updateFL(FloatList& head, const FloatList& tail)
-{
-    unsigned int i, count, len;
-    if(!tail.is_bound()) return;
-    len = tail.size_of();
-    if(head.is_bound()) count = (unsigned int)head.size_of();
-    else count = 0;
-    for(i=0;i<len;i++)
-    {
-        head[count] = tail[i];
-        count++;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//  Function: f__updateIL
-//
-//  Purpose:
-//     Append tail to the end of head (head return as inout)
-//
-//  Parameters:
-//    head - *in* <IntegerList> - first part of the integer list
-//    tail - *in* <IntegerList> - second part of the integer list
-//
-//  Return Value:
-//    -
-//
-//  Errors:
-//    -
-//
-//  Detailed description:
-//    -
-//
-///////////////////////////////////////////////////////////////////////////////
-void f__updateIL(IntegerList& head, const IntegerList& tail)
-{
-    unsigned int i, count, len;
-    if(!tail.is_bound()) return;
-    len = tail.size_of();
-    if(head.is_bound()) count = (unsigned int)head.size_of();
-    else count = 0;
-    for(i=0;i<len;i++)
-    {
-        head[count] = tail[i];
-        count++;
-    }
+  return f_std(flist,u);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -415,11 +421,7 @@ void f__updateIL(IntegerList& head, const IntegerList& tail)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__stdIL(const IntegerList& ilist)
 {
-    double toret = 0.0;
-    int i, len = ilist.size_of();
-    double u = (double)TCCMaths__Functions::f__averageIL(ilist);
-    for(i=0;i<len;i++) toret += pow((double)ilist[i]-u,2.0);
-    return FLOAT(pow(toret/((double)len-1),0.5));
+  return f_std(ilist);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -454,12 +456,7 @@ FLOAT f__stdIL(const IntegerList& ilist)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__stdILL(const IntegerList& ilist, const FLOAT& u)
 {
-    if(!ilist.is_bound()) FLOAT();
-    double toret = 0.0;
-    int i, len = ilist.size_of();
-    if(len == 0) return FLOAT();
-    for(i=0;i<len;i++) toret += pow((double)ilist[i]-(double)u,2.0);
-    return FLOAT(pow(toret/((double)(len-1)),0.5));
+  return f_std(ilist,u);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -491,17 +488,20 @@ FLOAT f__stdILL(const IntegerList& ilist, const FLOAT& u)
 ///////////////////////////////////////////////////////////////////////////////
 FloatList f__sinVL(const FLOAT& freq, const FLOAT& altitude, const FLOAT& start__val, const INTEGER& len, const FLOAT& step)
 {
-    double pi = 3.1415926535;
-    int i;
-    double tmp = (double)start__val;
-    FloatList toret;
-    for(i=0;i<(int)len;i++)
+  int i;
+  double tmp = start__val;
+  FloatList toret;
+  double common = 2.0 * M_PI * freq;
+  if (len > 0)
+  {
+    toret.set_size(len);
+    for ( i = 0; i < len; ++i)
     {
-        toret[i] = (double)altitude * sin(2.0 * pi * (double)freq * tmp);
-        tmp += (double)step;
+      toret[i] = altitude * sin(common * tmp);
+      tmp += step;
     }
-
-    return (toret);
+  }
+    return toret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -533,17 +533,20 @@ FloatList f__sinVL(const FLOAT& freq, const FLOAT& altitude, const FLOAT& start_
 ///////////////////////////////////////////////////////////////////////////////
 FloatList f__cosVL(const FLOAT& freq, const FLOAT& altitude, const FLOAT& start__val, const INTEGER& len, const FLOAT& step)
 {
-    double pi = 3.1415926535;
-    int i;
-    double tmp = (double)start__val;
-    FloatList toret;
-    for(i=0;i<(int)len;i++)
+  int i;
+  double tmp = start__val;
+  FloatList toret;
+  double common = 2.0 * M_PI * freq;
+  if (len > 0)
+  {
+    toret.set_size(len);
+    for ( i = 0; i < len; ++i)
     {
-        toret[i] = (double)altitude * cos(2.0 * pi * (double)freq * tmp);
-        tmp += (double)step;
+      toret[i] = altitude * cos(common * tmp);
+      tmp += step;
     }
-
-    return (toret);
+  }
+  return toret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -567,7 +570,7 @@ FloatList f__cosVL(const FLOAT& freq, const FLOAT& altitude, const FLOAT& start_
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__sin(const FLOAT& angle)
 {
-  return FLOAT(sin(angle));
+  return sin(angle);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -591,7 +594,7 @@ FLOAT f__sin(const FLOAT& angle)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__cos(const FLOAT& angle)
 {
-  return FLOAT(cos(angle));
+  return cos(angle);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -615,7 +618,7 @@ FLOAT f__cos(const FLOAT& angle)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__asin(const FLOAT& val)
 {
-  return FLOAT(asin(val));
+  return asin(val);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -639,7 +642,7 @@ FLOAT f__asin(const FLOAT& val)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__acos(const FLOAT& val)
 {
-  return FLOAT(acos(val));
+  return acos(val);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -664,7 +667,7 @@ FLOAT f__acos(const FLOAT& val)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__powFF(const FLOAT& base, const FLOAT& expo)
 {
-  return FLOAT(pow(base, expo));
+  return pow(base, expo);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -689,7 +692,7 @@ FLOAT f__powFF(const FLOAT& base, const FLOAT& expo)
 ///////////////////////////////////////////////////////////////////////////////
 INTEGER f__powII(const INTEGER& base, const INTEGER& expo)
 {
-  return INTEGER((int)pow(base, expo));
+  return float2int(pow(int2float(base), int2float(expo)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -714,7 +717,7 @@ INTEGER f__powII(const INTEGER& base, const INTEGER& expo)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__powIF(const INTEGER& base, const FLOAT& expo)
 {
-  return FLOAT(pow(base, expo));
+  return pow(int2float(base), expo);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -739,7 +742,7 @@ FLOAT f__powIF(const INTEGER& base, const FLOAT& expo)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__powFI(const FLOAT& base, const INTEGER& expo)
 {
-  return FLOAT(pow(base, expo));
+  return pow(base, int2float(expo));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -763,7 +766,7 @@ FLOAT f__powFI(const FLOAT& base, const INTEGER& expo)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__sqrF(const FLOAT& base)
 {
-  return FLOAT(base*base);
+  return base*base;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -787,7 +790,7 @@ FLOAT f__sqrF(const FLOAT& base)
 ///////////////////////////////////////////////////////////////////////////////
 INTEGER f__sqrI(const INTEGER& base)
 {
-  return INTEGER(base*base);
+  return base*base;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -811,7 +814,7 @@ INTEGER f__sqrI(const INTEGER& base)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__sqrtF(const FLOAT& base)
 {
-  return FLOAT(sqrt(base));
+  return sqrt(base);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -835,7 +838,7 @@ FLOAT f__sqrtF(const FLOAT& base)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__sqrtI(const INTEGER& base)
 {
-  return FLOAT(sqrt((double)base));
+  return sqrt(int2float(base));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -859,7 +862,7 @@ FLOAT f__sqrtI(const INTEGER& base)
 ///////////////////////////////////////////////////////////////////////////////
 INTEGER f__ceil(const FLOAT& val)
 {
-  return INTEGER((int)ceil(val));
+  return float2int(ceil(val));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -883,7 +886,7 @@ INTEGER f__ceil(const FLOAT& val)
 ///////////////////////////////////////////////////////////////////////////////
 INTEGER f__floor(const FLOAT& val)
 {
-  return INTEGER((int)floor(val));
+  return float2int(floor(val));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -907,7 +910,7 @@ INTEGER f__floor(const FLOAT& val)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__exp(const FLOAT& val)
 {
-  return FLOAT(exp(val));
+  return exp(val);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -931,7 +934,7 @@ FLOAT f__exp(const FLOAT& val)
 ///////////////////////////////////////////////////////////////////////////////
 FLOAT f__log(const FLOAT& val)
 {
-  return FLOAT(log(val));
+  return log(val);
 }
 
 }

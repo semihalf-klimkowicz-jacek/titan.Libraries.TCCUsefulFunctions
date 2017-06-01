@@ -1,0 +1,585 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2000-2017 Ericsson Telecom AB
+//
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
+///////////////////////////////////////////////////////////////////////////////
+//
+//  File:               TCCOpenSecurity.ttcn
+//  Description:        TCC Useful Functions: Security Functions
+//  Rev:                R30A
+//  Prodnr:             CNL 113 472
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module TCCOpenSecurity_Functions {
+
+type octetstring OCT_16 length(16);
+type octetstring OCT_64 length(64);
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculateRAND_oct
+//
+//  Purpose:
+//    Compute random value
+//
+//  Parameters:
+//      pl_length - *in* *integer* -  length of random value
+//
+//  Return Value:
+//      random value - *out* *octetstring* -  random value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_calculateRAND_oct(in integer pl_length) return octetstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculateSHA1
+//
+//  Purpose:
+//    Compute SHA1 hash value
+//
+//  Parameters:
+//      pszHashInput - *in* *charstring* -  input value to compute SHA1 hash
+//
+//  Return Value:
+//      charstring - hexa hash value of input
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      - SHA1() is an openssl specific function, should be found under openssl/sha.h
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_calculateSHA1(in charstring pszHashInput) return charstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculateSHA1_oct
+//
+//  Purpose:
+//    Compute SHA1 hash value, octetstring output
+//
+//  Parameters:
+//      pszHashInput - *in* *charstring* -  input value to compute SHA1 hash
+//
+//  Return Value:
+//      octetstring - octetstring hash value of input
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      - SHA1() is an openssl specific function, should be found under openssl/sha.h
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_calculateSHA1_oct(in octetstring pszHashInput) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculateHMACMD5
+//
+//  Purpose:
+//      Calculate the 128 bit HMAC MD5 value of a message with specified 64 bit key.
+//
+//  Parameters:
+//      msg - *in* *octetstring* - message to be hashed
+//      key - *in* *OCT_64*      - 64 bit key of the hash function
+//
+//  Return Value:
+//      octetstring - Hash value (16 octet)
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      - key should be 64 bit long, output is 128 bit long
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_calculateHMACMD5(in octetstring msg, in OCT_64 key) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculate_HMAC_MD5
+//
+//  Purpose:
+//      Calculate the HMAC MD5 value of a message with specified key.
+//
+//  Parameters:
+//      pl_key - *in* *octetstring*   - key of the hash function
+//      pl_input - *in* *octetstring* - message to be hashed
+//      pl_length - *in* *integer*    - length of the output hash value (should be 16 in most of the cases)
+//
+//  Return Value:
+//      octetstring - Hash value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      - key can be any length
+//      - the length of output can be set in pl_length
+//
+///////////////////////////////////////////////////////////////////////////////
+external function  f_calculate_HMAC_MD5(in octetstring pl_key, in octetstring pl_input, in integer pl_length) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculate_HMAC_SHA1
+//
+//  Purpose:
+//      Calculate the HMAC SHA1 value of a message with specified key.
+//
+//  Parameters:
+//      pl_key - *in* *octetstring*   - key of the hash function
+//      pl_input - *in* *octetstring* - message to be hashed
+//      pl_length - *in* *integer*    - length of the output hash value (should be 16 in most of the cases)
+//
+//  Return Value:
+//      octetstring - Hash value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      - key can be any length
+//      - the length of output can be set in pl_length
+//
+///////////////////////////////////////////////////////////////////////////////
+external function  f_calculate_HMAC_SHA1(in octetstring pl_key, in octetstring pl_input, in integer pl_length) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_calculate_HMAC_SHA256
+//
+//  Purpose:
+//      Calculate the HMAC SHA256 value of a message with specified key.
+//
+//  Parameters:
+//      pl_key - *in* *octetstring*   - key of the hash function
+//      pl_input - *in* *octetstring* - message to be hashed
+//      pl_length - *in* *integer*    - length of the output hash value (should be 32 in most of the cases)
+//
+//  Return Value:
+//      octetstring - Hash value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      - key can be any length
+//      - the length of output can be set in pl_length
+//
+///////////////////////////////////////////////////////////////////////////////
+external function  f_calculate_HMAC_SHA256(in octetstring pl_key, in octetstring pl_input, in integer pl_length) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_CBC_128_Encrypt_OpenSSL
+//
+//  Purpose: Calculate AES 128 CBC encrypted value
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_iv        - *in* *octetstring*   - Initialiazation Vector
+//          p_data      - *in* *octetstring*   - Data
+//
+//  Return Value:
+//         octetstring - encrypted value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_CBC_128_Encrypt_OpenSSL
+(
+  in octetstring p_key,
+  in octetstring p_iv,
+  in octetstring p_data
+) return octetstring;
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_CBC_128_Decrypt_OpenSSL
+//
+//  Purpose: Dectrypts AES 128 CBC encrypted data
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_iv        - *in* *octetstring*   - Initialiazation Vector
+//          p_data      - *in* *octetstring*   - Encrypted Value
+//
+//  Return Value:
+//         octetstring - decrypted original data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_CBC_128_Decrypt_OpenSSL
+(
+  in octetstring p_key,
+  in octetstring p_iv,
+  in octetstring p_data
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_CBC_Encrypt_OpenSSL
+//
+//  Purpose: Calculate AES 128 CBC encrypted value with arbitrary key length
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_iv        - *in* *octetstring*   - Initialiazation Vector
+//          p_data      - *in* *octetstring*   - Data
+//
+//  Return Value:
+//         octetstring - encrypted value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_CBC_Encrypt_OpenSSL
+(
+    in octetstring p_key,
+    in octetstring p_iv,
+    in octetstring p_data
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_CBC_Decrypt_OpenSSL
+//
+//  Purpose: Dectrypts AES CBC encrypted data with arbitrary key length
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_iv        - *in* *octetstring*   - Initialiazation Vector
+//          p_data      - *in* *octetstring*   - Encrypted Value
+//
+//  Return Value:
+//         octetstring - decrypted original data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_CBC_Decrypt_OpenSSL
+(
+    in octetstring p_key,
+    in octetstring p_iv,
+    in octetstring p_data
+) return octetstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_3DES_ECB_Encrypt
+//
+//  Purpose: Encrypts data using 3DES algorithm in ECB mode.
+//
+//  Parameters:
+//          pl_data      - *in* *octetstring*   - Data to be encrypted
+//          pl_key       - *in* *octetstring*   - Key
+//          pl_use_padding - *in* *boolean*     - control the usage of PKCS padding
+//
+//  Return Value:
+//         octetstring - encrypted data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_3DES_ECB_Encrypt
+(
+    in octetstring pl_data,
+    in octetstring pl_key,
+    in boolean     pl_use_padding:=true
+
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_3DES_ECB_Decrypt
+//
+//  Purpose:  Dectrypts 3DES ECB encrypted data.
+//
+//  Parameters:
+//          pl_data      - *in* *octetstring*   - Encrytped data
+//          pl_key       - *in* *octetstring*   - Key
+//          pl_use_padding - *in* *boolean*     - control the usage of PKCS padding
+//
+//  Return Value:
+//         octetstring - decrypted data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_3DES_ECB_Decrypt
+(
+    in octetstring pl_data,
+    in octetstring pl_key,
+    in boolean     pl_use_padding:=true
+) return octetstring;
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_3DES_CBC_Encrypt
+//
+//  Purpose: Encrypts data using TripleDES algorithm in CBC mode.
+//
+//  Parameters:
+//          pl_data      - *in* *octetstring*   - Data to be encrypted
+//          pl_key       - *in* *octetstring*   - Key
+//          pl_iv        - *in* *octetstring*   - Initialiazation Vector
+//          pl_use_padding - *in* *boolean*     - control the usage of PKCS padding
+//
+//  Return Value:
+//         octetstring - decrypted original data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_3DES_CBC_Encrypt
+(
+    in octetstring pl_data,
+    in octetstring pl_key,
+    in octetstring pl_iv,
+    in boolean     pl_use_padding:=true
+
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_3DES_CBC_Decrypt
+//
+//  Purpose: Decrypts TripleDES encrypted data.
+//
+//  Parameters:
+//          pl_data       - *in* *octetstring*   - Encrypted Value
+//          pl_key        - *in* *octetstring*   - Key
+//          pl_iv         - *in* *octetstring*   - Initialiazation Vector
+//          pl_use_padding - *in* *boolean*     - control the usage of PKCS padding
+//
+//  Return Value:
+//         octetstring - decrypted original data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_3DES_CBC_Decrypt
+(
+    in octetstring pl_data,
+    in octetstring pl_key,
+    in octetstring pl_iv,
+    in boolean     pl_use_padding:=true
+
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_Calculate_AES_XCBC_128
+//
+//  Purpose: Calculates the AES XCBC value of the data with a 128 bit key.
+//
+//  Parameters:
+//          pl_data       - *in* *octetstring*   - Data
+//          pl_key        - *in* *octetstring*   - Key
+//          pl_out_length - *in* *integer*       - Length of the output
+//
+//  Return Value:
+//         octetstring - AES XCBC value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      AES XCBC generates a 16 byte long value which can be truncated
+//      to a length given in pl_out_length.
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_Calculate_AES_XCBC_128
+(
+    in octetstring pl_data,
+    in octetstring pl_key,
+    in integer pl_out_length
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_DH_generate_private_public_keys
+//
+//  Purpose: Generates public and private keys (this party).
+//
+//  Parameters:
+//          pl_keyLength - *in* *integer*          - Key length (bytes)
+//          pl_pubkey    - *inout* *octetstring*   - Public key (other party)
+//          pl_privkey   - *inout* *octetstring*   - Private key (this party)
+//
+//  Return Value:
+//         integer - 0: failure, 1 success
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      Computes the shared secret from the originating side's private key and
+//      the public key of the responding side as described in DH group 2 and 14.
+//      Keys must be either 96, 128 or 256 bytes long.
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_DH_generate_private_public_keys
+(
+    in integer pl_keyLength,
+    inout octetstring pl_pubkey,
+    inout octetstring pl_privkey
+) return integer;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: ef_DH_shared_secret
+//
+//  Purpose: Calculates the shared secret from the given public and private keys.
+//
+//  Parameters:
+//          pl_pubkey      - *in* *octetstring*   - Public key (other party)
+//          pl_privkey     - *in* *octetstring*   - Private key (this party)
+//
+//  Return Value:
+//         octetstring - DH shared secret
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      Computes the shared secret from the originating side's private key and
+//      the public key of the responding side as described in DH group 1, 2 and 14.
+//      Keys must be either 96, 128 or 256 bytes long.
+//
+///////////////////////////////////////////////////////////////////////////////
+external function ef_DH_shared_secret
+(
+    in octetstring pl_pubkey,
+    in octetstring pl_privkey
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_ECB_128_Encrypt_OpenSSL
+//
+//  Purpose: Calculate AES 128 ECB encrypted value
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_data      - *in* *octetstring*   - Data
+//
+//  Return Value:
+//         octetstring - encrypted value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_ECB_128_Encrypt_OpenSSL
+(
+  OCT_16 p_key,
+  octetstring p_data
+) return octetstring;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_ECB_128_Decrypt_OpenSSL
+//
+//  Purpose: Dectrypts AES 128 EBC encrypted data
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_data      - *in* *octetstring*   - Encrypted Value
+//
+//  Return Value:
+//         octetstring - decrypted original data
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_ECB_128_Decrypt_OpenSSL
+(
+  OCT_16 p_key,
+  octetstring p_data
+) return octetstring;
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function: f_AES_CTR_128_Encrypt_Decrypt_OpenSSL
+//
+//  Purpose: Calculate AES 128 CTR encrypted value
+//
+//  Parameters:
+//          p_key       - *in* *octetstring*   - Key
+//          p_iv        - *in* *octetstring*   - Initialiazation Vector (IV+counter)
+//          p_data      - *in* *octetstring*   - Data
+//
+//  Return Value:
+//         octetstring - encrypted value
+//
+//  Errors:
+//      -
+//
+//  Detailed description:
+//      -
+//
+///////////////////////////////////////////////////////////////////////////////
+external function f_AES_CTR_128_Encrypt_Decrypt_OpenSSL
+(
+  OCT_16 p_key,
+  OCT_16 p_iv,
+  octetstring p_data
+) return octetstring;
+
+
+
+}

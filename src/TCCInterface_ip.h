@@ -1,20 +1,17 @@
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// Copyright Test Competence Center (TCC) ETH 2009                           //
-//                                                                           //
-// The copyright to the computer  program(s) herein  is the property of TCC. //
-// The program(s) may be used and/or copied only with the written permission //
-// of TCC or in accordance with  the terms and conditions  stipulated in the //
-// agreement/contract under which the program(s) have been supplied          //
-//                                                                           //
+//
+// Copyright (c) 2000-2017 Ericsson Telecom AB
+//
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCInterface_ip.h
 //  Description:        TCC Useful Functions: Interface Functions
-//  Rev:                R25A
+//  Rev:                R30A
 //  Prodnr:             CNL 113 472
-//  Updated:            2009-02-02
-//  Contact:            http://ttcn.ericsson.se
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -277,7 +274,9 @@ static int dnet_pton1(const char *src, struct dn_naddr *dna)
 	if ((pos == 0) || (node > 1023))
 		return 0;
 	dna->a_len = 2;
-	*(u_int16_t *)dna->a_addr = dn_htons((area << 10) | node);
+	u_int16_t ui16 = dn_htons((area << 10) | node);
+	dna->a_addr[0] = ui16;
+	dna->a_addr[1] = ui16 >> 8;
 
 	return 1;
 }

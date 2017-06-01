@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- Copyright (c) 2016 Ericsson
+ Copyright (c) 2017 Ericsson
 
-  The copyright to the computer  program(s) herein  is the property of Ericsson.
-  The program(s) may be used and/or copied only with the written permission
-  of Ericsson or in accordance with  the terms and conditions  stipulated in the
-  agreement/contract under which the program(s) has been supplied.
+  All rights reserved. This program and the accompanying materials
+  are made available under the terms of the Eclipse Public License v1.0
+  which accompanies this distribution, and is available at
+  http://www.eclipse.org/legal/epl-v10.html
+
 
 
    File:               TCCUsefulFunctions_CNL113472_IPsec.tpd
    Description:        tpd project file
-   Rev:                R25A
+   Rev:                R30A
    Prodnr:             CNL 113 472
 
  -->
@@ -20,6 +21,11 @@
     <FileResource projectRelativePath="TCCIPsec.cc" relativeURI="src/TCCIPsec.cc"/>
     <FileResource projectRelativePath="TCCIPsec_Definitions.ttcn" relativeURI="src/TCCIPsec_Definitions.ttcn"/>
     <FileResource projectRelativePath="TCCIPsec_Functions.ttcn" relativeURI="src/TCCIPsec_Functions.ttcn"/>
+    <FileResource projectRelativePath="TCCIPsec_XFRM.cc" relativeURI="src/TCCIPsec_XFRM.cc"/>
+    <FileResource projectRelativePath="TCCIPsec_XFRM.hh" relativeURI="src/TCCIPsec_XFRM.hh"/>
+    <FileResource projectRelativePath="TCCIPsec_XFRM_Definitions.ttcn" relativeURI="src/TCCIPsec_XFRM_Definitions.ttcn"/>
+    <FileResource projectRelativePath="TCCIPsec_XFRM_SA.cc" relativeURI="src/TCCIPsec_XFRM_SA.cc"/>
+    <FileResource projectRelativePath="TCCIPsec_XFRM_SP.cc" relativeURI="src/TCCIPsec_XFRM_SP.cc"/>
   </Files>
   <ActiveConfiguration>KAME_IPSEC</ActiveConfiguration>
   <Configurations>

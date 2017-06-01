@@ -1,20 +1,17 @@
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// Copyright Test Competence Center (TCC) ETH 2009                           //
-//                                                                           //
-// The copyright to the computer  program(s) herein  is the property of TCC. //
-// The program(s) may be used and/or copied only with the written permission //
-// of TCC or in accordance with  the terms and conditions  stipulated in the //
-// agreement/contract under which the program(s) have been supplied          //
-//                                                                           //
+//
+// Copyright (c) 2000-2017 Ericsson Telecom AB
+//
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCFileIO.cc
 //  Description:        TCC Useful Functions: FileIO Functions
-//  Rev:                R25A
+//  Rev:                R30A
 //  Prodnr:             CNL 113 472
-//  Updated:            2009-04-09
-//  Contact:            http://ttcn.ericsson.se
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -31,6 +28,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <dirent.h>
 
 
 #define BUF_SIZE 512
@@ -1099,6 +1097,35 @@ BOOLEAN f__FIO__rmdir(const CHARSTRING& pl__dir__name)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//  Function: f__FIO__remove
+//
+//  Purpose:
+//    Removes folder or a directory
+//
+//  Parameters:
+//    pl_file_name - *in* *charstring* - name of the folder/directory to remove
+//
+//  Return Value:
+//    boolean - indicate the successful or unsuccessful target removal
+//
+//  Errors:
+//    In the case of unsuccessful operation the cause of the error can be
+//    queried  by the f_FIO_get_error_code, f_FIO_get_error_string functions
+//
+///////////////////////////////////////////////////////////////////////////////
+BOOLEAN f__FIO__remove(const CHARSTRING& pl__file__name)
+{
+  if(remove((const char *)(pl__file__name)))
+  {
+    f__FIO__realize__error ("f__FIO__remove",
+                "Cannot remove ", __FILE__, __LINE__);
+    return FALSE;
+  }
+  else
+    return TRUE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 //  Function: f_FIO_fileOrDirExists
 // 
 //  Purpose:
@@ -1333,6 +1360,35 @@ BOOLEAN f__FIO__chmod(const CHARSTRING& p__name,
   }
 
   return TRUE;
+}
+
+INTEGER f__FIO__fileSize(const CHARSTRING& filename ) {
+  struct stat buffer ;
+  if(stat( (const char *)filename, &buffer )==0) {
+    return INTEGER(buffer.st_size);
+  }
+  else{return INTEGER (-1);}
+}
+
+BOOLEAN f__FIO__fileList(const CHARSTRING& dirname, FileList& filelist) {
+  struct dirent *pent;
+  DIR *pdir;
+  pdir=opendir((const char *)dirname);
+  if(!pdir) {
+    return FALSE;
+  }
+  else{
+    errno=0;
+    int i=0;
+    while((pent=readdir(pdir)))
+    {
+      filelist[i] = (pent->d_name);
+      i = i+1;
+    }
+    closedir(pdir);
+    if (errno){return FALSE;}
+    return TRUE;
+  }
 }
 
 }

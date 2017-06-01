@@ -1,22 +1,22 @@
-/******************************************************************************
-* Copyright (c) 2004, 2015  Ericsson AB
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-
-******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2000-2017 Ericsson Telecom AB
+//
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  File:               TCCMaths_Example.ttcn
 //  Description:        TCC Useful testcases: Maths testcases.
-//  Rev:                R22B
+//  Rev:                R30A
 //  Prodnr:             CNL 113 472
 //  Updated:            2007-12-09
 //  Contact:            http://ttcn.ericsson.se
 ///////////////////////////////////////////////
 
-module TCCMaths_Example 
+module TCCMaths_Example
 {
 
 import from TCCMaths_Functions all;
@@ -24,31 +24,40 @@ import from TCCMaths_GenericTypes all;
 
 modulepar float LIMIT := 0.01;
 
-type component Maths_CT { 
+type component Maths_CT {
   // math
   var float tmpFloat;
   var integer tmpInt;
   var float sum;
+  var float resFZero := 0.0;
 
   // integer
   var IntegerList ilist1 := { 1, 2, 3, 4, 5};
   var IntegerList ilist2 := { 6, 7, 8, 9, 10};
+  var IntegerList ilist_one_value := {42};
+  var IntegerList ilist_empty := {};
+  var IntegerList ilist_unbound;
   var IntegerList ires;
 
   var IntegerList maxIL1 := {5, 4};
   var IntegerList minIL1 := {1, 0};
+  var IntegerList errIL := {0, -1};
   var float avgIL1 := 3.0;
   var IntegerList updIL1 := { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   var float stdIL1 := 1.581139;
-  var float stdILL1 := 1.581139;  
+  var float stdILL1 := 1.581139;
 
   // float
   var FloatList flist1 := { 1.0, 2.0, 3.0, 4.0, 5.0};
   var FloatList flist2 := { 6.0, 7.0, 8.0, 9.0, 10.0};
+  var FloatList flist_one_value := {42.0};
+  var FloatList flist_empty := {};
+  var FloatList flist_unbound;
   var FloatList fres;
 
   var FloatList maxFL1 := {5.0, 4.0};
   var FloatList minFL1 := {1.0, 0.0};
+  var FloatList errFL := {0.0, -1.0};
   var float avgFL1 := 3.0;
   var FloatList updFL1 := { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
   var float stdFL1 := 1.58;
@@ -88,6 +97,20 @@ testcase f_test_maxIL() runs on Maths_CT
 
   if (ires == maxIL1) { setverdict(pass); }
   else { setverdict(fail); }
+
+  log("Max of empty integer list");
+  ires := f_maxIL(ilist_empty);
+  log("MaxIL (maxVal, maxIdx): ", ires);
+
+  if (ires == errIL) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Max of unbound integer list");
+  ires := f_maxIL(ilist_unbound);
+  log("MaxIL (maxVal, maxIdx): ", ires);
+
+  if (ires == errIL) { setverdict(pass); }
+  else { setverdict(fail); }
 }
 
 // test f_minIL testcase
@@ -107,6 +130,20 @@ testcase f_test_minIL() runs on Maths_CT
 
   if (ires == minIL1) { setverdict(pass); }
   else { setverdict(fail); }
+
+  log("Min of empty integer list");
+  ires := f_minIL(ilist_empty);
+  log("MinIL (minVal, minIdx): ", ires);
+
+  if (ires == errIL) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Min of unbound integer list");
+  ires := f_minIL(ilist_unbound);
+  log("MinIL (minVal, minIdx): ", ires);
+
+  if (ires == errIL) { setverdict(pass); }
+  else { setverdict(fail); }
 }
 
 // test f_averageIL testcase
@@ -122,9 +159,27 @@ testcase f_test_averageIL() runs on Maths_CT
   log(" ----------- f_averageIL ----------- ");
   log("Original integer list: ", ilist1);
   tmpFloat := f_averageIL(ilist1);
-  log("AverageIL (averageVal, averageIdx): ", tmpFloat);
+  log("AverageIL: ", tmpFloat);
 
   if (tmpFloat == avgIL1) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Average for one value list");
+  tmpFloat := f_averageIL(ilist_one_value);
+  log("AverageIL: ", tmpFloat);
+  if (tmpFloat == int2float(ilist_one_value[0])) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Average for empty list");
+  tmpFloat := f_averageIL(ilist_empty);
+  log("AverageIL: ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Average for unbound list");
+  tmpFloat := f_averageIL(ilist_unbound);
+  log("AverageIL: ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
   else { setverdict(fail); }
 }
 
@@ -164,12 +219,30 @@ testcase f_test_stdIL() runs on Maths_CT
   tmpFloat := f_stdIL(ilist1);
   log("Normalized, standard derivation (IL): ", tmpFloat);
 
-  if ((tmpFloat - stdIL1) * (tmpFloat - stdIL1) < LIMIT) { 
-    setverdict(pass); 
+  if ((tmpFloat - stdIL1) * (tmpFloat - stdIL1) < LIMIT) {
+    setverdict(pass);
   }
-  else { 
-    setverdict(fail); 
+  else {
+    setverdict(fail);
   }
+
+  log("Normalized, standard derivation for one value list");
+  tmpFloat := f_stdIL(ilist_one_value);
+  log("Normalized, standard derivation (IL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for empty list");
+  tmpFloat := f_stdIL(ilist_empty);
+  log("Normalized, standard derivation (IL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for unbound list");
+  tmpFloat := f_stdIL(ilist_unbound);
+  log("Normalized, standard derivation (IL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
 }
 
 // test f_averageILL testcase
@@ -187,12 +260,30 @@ testcase f_test_stdILL() runs on Maths_CT
   tmpFloat := f_stdILL(ilist1, f_averageIL(ilist1));
   log("Normalized, standard derivation (ILL): ", tmpFloat);
 
-  if ((tmpFloat - stdILL1) * (tmpFloat - stdILL1) < LIMIT) { 
-    setverdict(pass); 
+  if ((tmpFloat - stdILL1) * (tmpFloat - stdILL1) < LIMIT) {
+    setverdict(pass);
   }
-  else { 
-    setverdict(fail); 
+  else {
+    setverdict(fail);
   }
+
+  log("Normalized, standard derivation for one value list");
+  tmpFloat := f_stdILL(ilist_one_value, f_averageIL(ilist1));
+  log("Normalized, standard derivation (IL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for empty list");
+  tmpFloat := f_stdILL(ilist_empty, f_averageIL(ilist1));
+  log("Normalized, standard derivation (IL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for unbound list");
+  tmpFloat := f_stdILL(ilist_unbound, f_averageIL(ilist1));
+  log("Normalized, standard derivation (IL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
 }
 
 // test f_maxIL testcase
@@ -212,6 +303,20 @@ testcase f_test_maxFL() runs on Maths_CT
 
   if (fres == maxFL1) { setverdict(pass); }
   else { setverdict(fail); }
+
+  log("Max of empty float list");
+  fres := f_maxFL(flist_empty);
+  log("MaxFL (maxVal, maxIdx): ", fres);
+
+  if (fres == errFL) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Max of unbound float list");
+  fres := f_maxFL(flist_unbound);
+  log("MaxFL (maxVal, maxIdx): ", fres);
+
+  if (fres == errFL) { setverdict(pass); }
+  else { setverdict(fail); }
 }
 
 // test f_minIL testcase
@@ -227,9 +332,23 @@ testcase f_test_minFL() runs on Maths_CT
   log(" ----------- f_minFL ----------- ");
   log("Original float list: ", flist1);
   fres := f_minFL(flist1);
-  log("MinIL (minVal, minIdx): ", fres);
+  log("MinFL (minVal, minIdx): ", fres);
 
   if (fres == minFL1) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Min of empty float list");
+  fres := f_minFL(flist_empty);
+  log("MinFL (minVal, minIdx): ", fres);
+
+  if (fres == errFL) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Min of unbound float list");
+  fres := f_minFL(flist_unbound);
+  log("MinFL (minVal, minIdx): ", fres);
+
+  if (fres == errFL) { setverdict(pass); }
   else { setverdict(fail); }
 }
 
@@ -245,10 +364,28 @@ testcase f_test_averageFL() runs on Maths_CT
 
   log(" ----------- f_averageFL ----------- ");
   log("Original float list: ", flist1);
-  tmpFloat := f_averageFL(flist1);  
-  log("AverageIL (averageVal, averageIdx): ", tmpFloat);
+  tmpFloat := f_averageFL(flist1);
+  log("AverageFL: ", tmpFloat);
 
   if (tmpFloat == avgFL1) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Average for one value list");
+  tmpFloat := f_averageFL(flist_one_value);
+  log("AverageFL: ", tmpFloat);
+  if (tmpFloat == flist_one_value[0]) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Average for empty list");
+  tmpFloat := f_averageFL(flist_empty);
+  log("AverageFL: ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Average for unbound list");
+  tmpFloat := f_averageFL(flist_unbound);
+  log("AverageFL: ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
   else { setverdict(fail); }
 }
 
@@ -286,14 +423,32 @@ testcase f_test_stdFL() runs on Maths_CT
   log(" ----------- f_stdFL ----------- ");
   log("Original float list: ", flist1);
   tmpFloat := f_stdFL(flist1);
-  log("Normalized, standard derivation (IL): ", tmpFloat);
+  log("Normalized, standard derivation (FL): ", tmpFloat);
 
-  if ((tmpFloat - stdFL1) * (tmpFloat - stdFL1) < LIMIT) { 
-    setverdict(pass); 
+  if ((tmpFloat - stdFL1) * (tmpFloat - stdFL1) < LIMIT) {
+    setverdict(pass);
   }
-  else { 
-    setverdict(fail); 
+  else {
+    setverdict(fail);
   }
+
+  log("Normalized, standard derivation for one value list");
+  tmpFloat := f_stdFL(flist_one_value);
+  log("Normalized, standard derivation (FL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for empty list");
+  tmpFloat := f_stdFL(flist_empty);
+  log("Normalized, standard derivation (FL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for unbound list");
+  tmpFloat := f_stdFL(flist_unbound);
+  log("Normalized, standard derivation (FL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
 }
 
 // test f_averageFLL testcase
@@ -311,11 +466,29 @@ testcase f_test_stdFLL() runs on Maths_CT
   tmpFloat := f_stdFLL(flist1, f_averageFL(flist1));
   log("Normalized, standard derivation (FLL): ", tmpFloat);
 
-  if ((tmpFloat - stdFLL1) * (tmpFloat - stdFLL1) < LIMIT) { 
-    setverdict(pass); 
+  if ((tmpFloat - stdFLL1) * (tmpFloat - stdFLL1) < LIMIT) {
+    setverdict(pass);
   }
-  else { 
-    setverdict(fail); 
+  else {
+    setverdict(fail);
+
+  log("Normalized, standard derivation for one value list");
+  tmpFloat := f_stdFLL(flist_one_value, f_averageFL(flist1));
+  log("Normalized, standard derivation (FL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for empty list");
+  tmpFloat := f_stdFLL(flist_empty, f_averageFL(flist1));
+  log("Normalized, standard derivation (FL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
+
+  log("Normalized, standard derivation for unbound list");
+  tmpFloat := f_stdFLL(flist_unbound, f_averageFL(flist1));
+  log("Normalized, standard derivation (FL): ", tmpFloat);
+  if (tmpFloat == resFZero) { setverdict(pass); }
+  else { setverdict(fail); }
   }
 }
 
@@ -323,10 +496,10 @@ testcase f_test_stdFLL() runs on Maths_CT
 testcase f_test_sinVL() runs on Maths_CT
 {
   log(" ----------- f_sinVL ----------- ");
-  log("SINUS (Frequency: ", freq, 
-    ", altitude: ", alti, 
-    ", startval: ", startval, 
-    ", step: ", step, 
+  log("SINUS (Frequency: ", freq,
+    ", altitude: ", alti,
+    ", startval: ", startval,
+    ", step: ", step,
     ", return length: ", len, "):");
 
   fres := f_sinVL(freq, alti, startval, len, step);
@@ -347,10 +520,10 @@ testcase f_test_sinVL() runs on Maths_CT
 testcase f_test_cosVL() runs on Maths_CT
 {
   log(" ----------- f_cosVL ----------- ");
-  log("COSINUS (Frequency: ", freq, 
-    ", altitude: ", alti, 
-    ", startval: ", startval, 
-    ", step: ", step, 
+  log("COSINUS (Frequency: ", freq,
+    ", altitude: ", alti,
+    ", startval: ", startval,
+    ", step: ", step,
     ", return length: ", len, "):");
 
   fres := f_cosVL(freq, alti, startval, len, step);
@@ -364,7 +537,7 @@ testcase f_test_cosVL() runs on Maths_CT
     sum := sum + tmpFloat * tmpFloat;
   }
   if (sum < LIMIT) { setverdict(pass); }
-  else { setverdict(fail); }  
+  else { setverdict(fail); }
 }
 
 // test function pi
@@ -380,7 +553,7 @@ testcase f_test_pi() runs on Maths_CT
 testcase f_test_sin() runs on Maths_CT
 {
   log(" ----------- f_sin ----------- ");
-  
+
   tmpFloat := f_sin(3.1415926535 / 2.0);
   log("Sine of PI/2: ", tmpFloat);
 
@@ -392,7 +565,7 @@ testcase f_test_sin() runs on Maths_CT
 testcase f_test_cos() runs on Maths_CT
 {
   log(" ----------- f_cos ----------- ");
-  
+
   tmpFloat := f_cos(3.1415926535 / 2.0);
   log("Cosine of PI/2: ", tmpFloat);
 
@@ -403,13 +576,13 @@ testcase f_test_cos() runs on Maths_CT
 testcase f_test_asin() runs on Maths_CT
 {
   log(" ----------- f_asin ----------- ");
-  
+
   tmpFloat := f_asin(1.0);
   log("Arc sine of 1.0: ", tmpFloat);
 
   tmpFloat := tmpFloat - 3.1415926535 / 2.0;
-  if (tmpFloat * tmpFloat < LIMIT )  { 
-    setverdict(pass); 
+  if (tmpFloat * tmpFloat < LIMIT )  {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -417,13 +590,13 @@ testcase f_test_asin() runs on Maths_CT
 testcase f_test_acos() runs on Maths_CT
 {
   log(" ----------- f_acos ----------- ");
-  
+
   tmpFloat := f_acos(0.0);
   log("Arc cosine of 0.0: ", tmpFloat);
 
   tmpFloat := tmpFloat - 3.1415926535 / 2.0;
-  if (tmpFloat * tmpFloat < LIMIT)  { 
-    setverdict(pass); 
+  if (tmpFloat * tmpFloat < LIMIT)  {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -431,13 +604,13 @@ testcase f_test_acos() runs on Maths_CT
 testcase f_test_powFF() runs on Maths_CT
 {
   log(" ----------- f_powFF ----------- ");
-  
+
   tmpFloat := f_powFF(2.0, 3.0);
   log("Raise 2.0 to power 3.0: ", tmpFloat);
 
   tmpFloat := tmpFloat - 8.0;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -445,12 +618,12 @@ testcase f_test_powFF() runs on Maths_CT
 testcase f_test_powII() runs on Maths_CT
 {
   log(" ----------- f_powII ----------- ");
-  
+
   tmpInt := f_powII(2, 3);
   log("Raise 2 to power 3: ", tmpInt);
 
-  if ( tmpInt == 8) { 
-    setverdict(pass); 
+  if ( tmpInt == 8) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -458,13 +631,13 @@ testcase f_test_powII() runs on Maths_CT
 testcase f_test_powIF() runs on Maths_CT
 {
   log(" ----------- f_powIF ----------- ");
-  
+
   tmpFloat := f_powIF(2, 3.0);
   log("Raise 2 to power 3.0: ", tmpFloat);
 
   tmpFloat := tmpFloat - 8.0;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -472,54 +645,54 @@ testcase f_test_powIF() runs on Maths_CT
 testcase f_test_powFI() runs on Maths_CT
 {
   log(" ----------- f_powFI ----------- ");
-  
+
   tmpFloat := f_powFI(2.0, 3);
   log("Raise 2.0 to power 3: ", tmpFloat);
 
   tmpFloat := tmpFloat - 8.0;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
-  else { setverdict(fail); }  
+  else { setverdict(fail); }
 }
 
 testcase f_test_powFF_cubicRootOfTwo() runs on Maths_CT
 {
   log(" ----------- f_powFF (Cubic root) ----------- ");
-  
+
   tmpFloat := f_powFF(2.0, 1.0/3.0);
   log("Raise 2.0 to power 0.3333: ", tmpFloat);
 
   tmpFloat := tmpFloat - 1.2599215;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
-  else { setverdict(fail); }  
+  else { setverdict(fail); }
 }
 
 testcase f_test_sqrF() runs on Maths_CT
 {
   log(" ----------- f_sqrF ----------- ");
-  
+
   tmpFloat := f_sqrF(2.0);
   log("Square of 2.0: ", tmpFloat);
 
   tmpFloat := tmpFloat - 4.0;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
-  else { setverdict(fail); }  
+  else { setverdict(fail); }
 }
 
 testcase f_test_sqrI() runs on Maths_CT
 {
   log(" ----------- f_sqrI ----------- ");
-  
+
   tmpInt := f_sqrI(2);
   log("Square of 2: ", tmpInt);
 
-  if ( tmpInt == 4) { 
-    setverdict(pass); 
+  if ( tmpInt == 4) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -527,13 +700,13 @@ testcase f_test_sqrI() runs on Maths_CT
 testcase f_test_sqrtF() runs on Maths_CT
 {
   log(" ----------- f_sqrtF ----------- ");
-  
+
   tmpFloat := f_sqrtF(2.0);
   log("Square root of 2.0: ", tmpFloat);
 
   tmpFloat := tmpFloat - 1.4142145;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -541,13 +714,13 @@ testcase f_test_sqrtF() runs on Maths_CT
 testcase f_test_sqrtI() runs on Maths_CT
 {
   log(" ----------- f_sqrtI ----------- ");
-  
+
   tmpFloat := f_sqrtI(2);
   log("Square root of 2: ", tmpFloat);
 
   tmpFloat := tmpFloat - 1.4142145;
-  if ( tmpFloat * tmpFloat < LIMIT) { 
-    setverdict(pass); 
+  if ( tmpFloat * tmpFloat < LIMIT) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -555,12 +728,12 @@ testcase f_test_sqrtI() runs on Maths_CT
 testcase f_test_ceil() runs on Maths_CT
 {
   log(" ----------- f_ceil ----------- ");
-  
+
   tmpInt := f_ceil(3.1);
   log("ceil of 3.1: ", tmpInt);
 
-  if (tmpInt == 4) { 
-    setverdict(pass); 
+  if (tmpInt == 4) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -568,12 +741,12 @@ testcase f_test_ceil() runs on Maths_CT
 testcase f_test_floor() runs on Maths_CT
 {
   log(" ----------- f_floor ----------- ");
-  
+
   tmpInt := f_floor(3.1);
   log("ceil of 3.1: ", tmpInt);
 
-  if ( tmpInt == 3) { 
-    setverdict(pass); 
+  if ( tmpInt == 3) {
+    setverdict(pass);
   }
   else { setverdict(fail); }
 }
@@ -592,9 +765,9 @@ testcase f_test_poisson() runs on Maths_CT
     vl_success:=f_generate_poissonTable(i,vl_poissonTable);
     log("Poisson table Nr:",i," ,",vl_success);
     log(vl_poissonTable);
-    
+
   }
-  setverdict(pass); 
+  setverdict(pass);
 }
 
 testcase f_test_next_poisson() runs on Maths_CT
@@ -611,9 +784,9 @@ testcase f_test_next_poisson() runs on Maths_CT
     vl_nextValue := f_getNext_poissonValue(i, vl_poissonTable, vl_success);
 
     log("Next Poisson value:",vl_nextValue," ,",vl_success);
-    log(vl_poissonTable);    
+    log(vl_poissonTable);
   }
-  setverdict(pass); 
+  setverdict(pass);
 }
 
 
@@ -650,7 +823,7 @@ control
   execute(f_test_acos());
   execute(f_test_powFF());
   execute(f_test_powII());
-  execute(f_test_powIF()); 
+  execute(f_test_powIF());
   execute(f_test_powFI());
   execute(f_test_powFF_cubicRootOfTwo());
   execute(f_test_sqrF());
@@ -659,10 +832,10 @@ control
   execute(f_test_sqrtI());
   execute(f_test_ceil());
   execute(f_test_floor());
-  
+
   //poisson
   execute(f_test_poisson());
-  execute(f_test_next_poisson());      
+  execute(f_test_next_poisson());
 }
 
 }
