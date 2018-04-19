@@ -24,6 +24,9 @@
 #include <openssl/dh.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#include <openssl/modes.h>
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
 namespace TCCOpenSecurity__Functions {
 
@@ -447,33 +450,67 @@ OCTETSTRING ef__3DES__ECB__Encrypt (const OCTETSTRING& pl__data, const OCTETSTRI
    unsigned char* outbuf=NULL;
   const unsigned char* data= (const unsigned char*)pl__data;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_init(ctx);
+#else
   EVP_CIPHER_CTX ctx;
   EVP_CIPHER_CTX_init(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  if(EVP_EncryptInit_ex(ctx, EVP_des_ede3_ecb(), NULL, pl__key, NULL))
+  {
+    int block_size = EVP_CIPHER_CTX_block_size(ctx);
+     if(!pl__use__padding) {  // the padding is used by default
+      EVP_CIPHER_CTX_set_padding(ctx,0);
+#else
   if(EVP_EncryptInit_ex(&ctx, EVP_des_ede3_ecb(), NULL, pl__key, NULL))
   {
     int block_size = EVP_CIPHER_CTX_block_size(&ctx);
      if(!pl__use__padding) {  // the padding is used by default
       EVP_CIPHER_CTX_set_padding(&ctx,0);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
       if(pl__data.lengthof()%block_size){
         TTCN_warning("ef_3DES_ECB_Encrypt: The length of the pl_data should be n * %d (the block size) if padding is not used.", block_size);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
+
         return OCTETSTRING(0,NULL);
       }
     }
     if((outbuf = (unsigned char*)Malloc(pl__data.lengthof() + block_size)) != NULL)
     {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_EncryptUpdate(ctx, outbuf, &outl, data, pl__data.lengthof())){
+#else
       if(!EVP_EncryptUpdate(&ctx, outbuf, &outl, data, pl__data.lengthof())){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_ECB_Encrypt: EVP_EncryptUpdate failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
       position = outl;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_EncryptFinal_ex(ctx, &outbuf[position], &outl)){
+#else
       if(!EVP_EncryptFinal_ex(&ctx, &outbuf[position], &outl)){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_ECB_Encrypt: EVP_EncryptFinal_ex failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
 
@@ -482,7 +519,11 @@ OCTETSTRING ef__3DES__ECB__Encrypt (const OCTETSTRING& pl__data, const OCTETSTRI
       Free(outbuf);
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    EVP_CIPHER_CTX_free(ctx);
+#else
     EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   } else {
         TTCN_warning("ef_3DES_ECB_Encrypt: EVP_EncryptInit_ex failed.");
@@ -524,34 +565,69 @@ OCTETSTRING ef__3DES__ECB__Decrypt (const OCTETSTRING& pl__data, const OCTETSTRI
    unsigned char* outbuf=NULL;
   const unsigned char* data= (const unsigned char*)pl__data;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_init(ctx);
+#else
   EVP_CIPHER_CTX ctx;
   EVP_CIPHER_CTX_init(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  if(EVP_DecryptInit_ex(ctx, EVP_des_ede3_ecb(), NULL, pl__key, NULL))
+  {
+    int block_size = EVP_CIPHER_CTX_block_size(ctx);
+#else
   if(EVP_DecryptInit_ex(&ctx, EVP_des_ede3_ecb(), NULL, pl__key, NULL))
   {
     int block_size = EVP_CIPHER_CTX_block_size(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
     if(pl__data.lengthof()%block_size){
       TTCN_warning("ef_3DES_ECB_Decrypt: The length of the pl_data should be n * %d (the block size)!", block_size);
-        EVP_CIPHER_CTX_cleanup(&ctx);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      EVP_CIPHER_CTX_free(ctx);
+#else
+      EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
       return OCTETSTRING(0,NULL);
     }
      if(!pl__use__padding) {  // the padding is used by default
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      EVP_CIPHER_CTX_set_padding(ctx,0);
+#else
       EVP_CIPHER_CTX_set_padding(&ctx,0);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
     }
     if((outbuf = (unsigned char*)Malloc(pl__data.lengthof() + block_size)) != NULL)
     {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_DecryptUpdate(ctx, outbuf, &outl, data, pl__data.lengthof())){
+#else
       if(!EVP_DecryptUpdate(&ctx, outbuf, &outl, data, pl__data.lengthof())){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_ECB_Decrypt: EVP_DecryptUpdate failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
       position = outl;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_DecryptFinal_ex(ctx, &outbuf[position], &outl)){
+#else
       if(!EVP_DecryptFinal_ex(&ctx, &outbuf[position], &outl)){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_ECB_Decrypt: EVP_DecryptFinal_ex failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
 
@@ -560,7 +636,11 @@ OCTETSTRING ef__3DES__ECB__Decrypt (const OCTETSTRING& pl__data, const OCTETSTRI
       Free(outbuf);
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    EVP_CIPHER_CTX_free(ctx);
+#else
     EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   } else {
         TTCN_warning("ef_3DES_ECB_Decrypt: EVP_DecryptInit_ex failed.");
@@ -605,6 +685,16 @@ OCTETSTRING ef__3DES__CBC__Encrypt (const OCTETSTRING& pl__data, const OCTETSTRI
    unsigned char* outbuf=NULL;
   const unsigned char* data= (const unsigned char*)pl__data;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_init(ctx);
+
+  if(EVP_EncryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, pl__key, pl__iv))
+  {
+    int block_size = EVP_CIPHER_CTX_block_size(ctx);
+     if(!pl__use__padding) {  // the padding is used by default
+      EVP_CIPHER_CTX_set_padding(ctx,0);
+#else
   EVP_CIPHER_CTX ctx;
   EVP_CIPHER_CTX_init(&ctx);
 
@@ -613,27 +703,48 @@ OCTETSTRING ef__3DES__CBC__Encrypt (const OCTETSTRING& pl__data, const OCTETSTRI
     int block_size = EVP_CIPHER_CTX_block_size(&ctx);
      if(!pl__use__padding) {  // the padding is used by default
       EVP_CIPHER_CTX_set_padding(&ctx,0);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
       if(pl__data.lengthof()%block_size){
         TTCN_warning("ef_3DES_CBC_Encrypt: The length of the pl_data should be n * %d (the block size) if padding is not used.", block_size);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
     }
     if((outbuf = (unsigned char*)Malloc(pl__data.lengthof() + block_size)) != NULL)
     {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_EncryptUpdate(ctx, outbuf, &outl, data, pl__data.lengthof())){
+#else
       if(!EVP_EncryptUpdate(&ctx, outbuf, &outl, data, pl__data.lengthof())){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_CBC_Encrypt: EVP_EncryptUpdate failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
 
       position = outl;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_EncryptFinal_ex(ctx, &outbuf[position], &outl)){
+#else
       if(!EVP_EncryptFinal_ex(&ctx, &outbuf[position], &outl)){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_CBC_Encrypt: EVP_EncryptFinal_ex failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
 
@@ -642,7 +753,12 @@ OCTETSTRING ef__3DES__CBC__Encrypt (const OCTETSTRING& pl__data, const OCTETSTRI
 
     ret_val=OCTETSTRING(position, outbuf);
     Free(outbuf);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    EVP_CIPHER_CTX_free(ctx);
+#else
     EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   } else {
         TTCN_warning("ef_3DES_CBC_Encrypt: EVP_EncryptInit_ex failed.");
@@ -685,35 +801,68 @@ OCTETSTRING ef__3DES__CBC__Decrypt (const OCTETSTRING& pl__data, const OCTETSTRI
    unsigned char* outbuf=NULL;
   const unsigned char* data= (const unsigned char*)pl__data;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_init(ctx);
+
+  if(EVP_DecryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, pl__key, pl__iv))
+  {
+    int block_size = EVP_CIPHER_CTX_block_size(ctx);
+#else
   EVP_CIPHER_CTX ctx;
   EVP_CIPHER_CTX_init(&ctx);
 
   if(EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, pl__key, pl__iv))
   {
     int block_size = EVP_CIPHER_CTX_block_size(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
     if(pl__data.lengthof()%block_size){
       TTCN_warning("ef__3DES__CBC__Decrypt: The length of the pl_data should be n * %d (the block size)!", block_size);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
       return OCTETSTRING(0,NULL);
     }
      if(!pl__use__padding) {  // the padding is used by default
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      EVP_CIPHER_CTX_set_padding(ctx,0);
+#else
       EVP_CIPHER_CTX_set_padding(&ctx,0);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
     }
     if((outbuf = (unsigned char*)Malloc(pl__data.lengthof() + block_size)) != NULL)
     {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_DecryptUpdate(ctx, outbuf, &outl, data, pl__data.lengthof())){
+#else
       if(!EVP_DecryptUpdate(&ctx, outbuf, &outl, data, pl__data.lengthof())){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_CBC_Decrypt: EVP_DecryptUpdate failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
 ;
       position = outl;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      if(!EVP_DecryptFinal_ex(ctx, &outbuf[position], &outl)){
+#else
       if(!EVP_DecryptFinal_ex(&ctx, &outbuf[position], &outl)){
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         TTCN_warning("ef_3DES_ECB_Decrypt: EVP_DecryptFinal_ex failed.");
         Free(outbuf);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        EVP_CIPHER_CTX_free(ctx);
+#else
         EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
         return OCTETSTRING(0,NULL);
       }
       position += outl;
@@ -721,7 +870,11 @@ OCTETSTRING ef__3DES__CBC__Decrypt (const OCTETSTRING& pl__data, const OCTETSTRI
       Free(outbuf);
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    EVP_CIPHER_CTX_free(ctx);
+#else
     EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   } else {
         TTCN_warning("ef_3DES_CBC_Decrypt: EVP_DecryptInit_ex failed.");
@@ -767,6 +920,24 @@ OCTETSTRING ef__Calculate__AES__XCBC__128 (const OCTETSTRING& pl__data, const OC
   unsigned char key3[block_size] = { 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03 };
   unsigned char e[block_size] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_init(ctx);
+
+  EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, pl__key, NULL);
+  EVP_EncryptUpdate(ctx, key1, &outl, key1, block_size);
+  EVP_CIPHER_CTX_free(ctx);
+
+  EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, pl__key, NULL);
+  EVP_EncryptUpdate(ctx, key2, &outl, key2, block_size);
+  EVP_CIPHER_CTX_free(ctx);
+
+  EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, pl__key, NULL);
+  EVP_EncryptUpdate(ctx, key3, &outl, key3, block_size);
+  EVP_CIPHER_CTX_free(ctx);
+
+  if(EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key1, NULL))
+#else
   EVP_CIPHER_CTX ctx;
   EVP_CIPHER_CTX_init(&ctx);
 
@@ -783,6 +954,7 @@ OCTETSTRING ef__Calculate__AES__XCBC__128 (const OCTETSTRING& pl__data, const OC
   EVP_CIPHER_CTX_cleanup(&ctx);
 
   if(EVP_EncryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, key1, NULL))
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
   {
     for(int i = 0; i < data_length - block_size; i += block_size)
     {
@@ -791,9 +963,15 @@ OCTETSTRING ef__Calculate__AES__XCBC__128 (const OCTETSTRING& pl__data, const OC
         e[j] ^= data[i+j];
       }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+      EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key1, NULL);
+      EVP_EncryptUpdate(ctx, e, &outl, e, block_size);
+      EVP_CIPHER_CTX_free(ctx);
+#else
       EVP_EncryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, key1, NULL);
       EVP_EncryptUpdate(&ctx, e, &outl, e, block_size);
       EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
     }
 
     int last_block_length = data_length % block_size;
@@ -824,9 +1002,15 @@ OCTETSTRING ef__Calculate__AES__XCBC__128 (const OCTETSTRING& pl__data, const OC
       }
 
     }
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key1, NULL);
+    EVP_EncryptUpdate(ctx, e, &outl, e, block_size);
+    EVP_CIPHER_CTX_free(ctx);
+#else
     EVP_EncryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, key1, NULL);
     EVP_EncryptUpdate(&ctx, e, &outl, e, block_size);
     EVP_CIPHER_CTX_cleanup(&ctx);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
     return OCTETSTRING(pl__out__length, (const unsigned char*)e);
 
@@ -881,18 +1065,35 @@ INTEGER ef__DH__generate__private__public__keys (const INTEGER& pl__keyLength, O
       return INTEGER(0);
     }
   }
-  dh->p = prime;
 
   const char* generator = "2";
   BIGNUM* gen = BN_new();
   BN_hex2bn(&gen, generator);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  DH_set0_pqg(dh, prime, NULL, gen);
+#else
+  dh->p = prime;
   dh->g = gen;
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   DH_generate_key(dh);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  const BIGNUM *dh_pub_key, *dh_priv_key;
+  DH_get0_key(dh, &dh_pub_key, &dh_priv_key);
+  int pub_len = BN_num_bytes(dh_pub_key);
+#else
   int pub_len = BN_num_bytes(dh->pub_key);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
+
   unsigned char* pub_key = (unsigned char*)Malloc(pub_len * sizeof(unsigned char));
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  pub_len = BN_bn2bin(dh_pub_key, pub_key);
+#else
   pub_len = BN_bn2bin(dh->pub_key, pub_key);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
+
   if (key_length-pub_len > 0)
   {pl__pubkey =  int2oct(0,key_length-pub_len) + OCTETSTRING(pub_len, pub_key);}
   else
@@ -905,9 +1106,20 @@ INTEGER ef__DH__generate__private__public__keys (const INTEGER& pl__keyLength, O
       return INTEGER(0);
   }
 
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  int priv_len = BN_num_bytes(dh_priv_key);
+#else
   int priv_len = BN_num_bytes(dh->priv_key);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
+
   unsigned char* priv_key = (unsigned char*)Malloc(priv_len * sizeof(unsigned char));
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  priv_len = BN_bn2bin(dh_priv_key, priv_key);
+#else
   priv_len = BN_bn2bin(dh->priv_key, priv_key);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
+
   if (key_length-priv_len > 0)
   {pl__privkey =  int2oct(0,key_length-priv_len) + OCTETSTRING(priv_len, priv_key);}
   else
@@ -970,20 +1182,30 @@ OCTETSTRING ef__DH__shared__secret (const OCTETSTRING& pl__pubkey, const OCTETST
       return OCTETSTRING(0, NULL);
     }
   }
-  dh->p = prime;
 
   const char* generator = "2";
   BIGNUM* gen = BN_new();
   BN_hex2bn(&gen, generator);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  DH_set0_pqg(dh, prime, NULL, gen);
+#else
+  dh->p = prime;
   dh->g = gen;
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   BIGNUM* priv_key = BN_new();
   BN_bin2bn((const unsigned char*)pl__privkey, key_length, priv_key);
-  dh->priv_key = priv_key;
 
   BIGNUM* pub_key = BN_new();
   BN_bin2bn((const unsigned char*)pl__pubkey, key_length, pub_key);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  DH_set0_key(dh, pub_key, priv_key);
+#else
+  dh->priv_key = priv_key;
   dh->pub_key = pub_key;
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   if(DH_compute_key(shared_secret, pub_key, dh))
   {
@@ -1120,7 +1342,11 @@ OCTETSTRING f__AES__CTR__128__Encrypt__Decrypt__OpenSSL (const OCTETSTRING& p_ke
   unsigned char ecount_buf[AES_BLOCK_SIZE];
   memset(ecount_buf, 0, AES_BLOCK_SIZE);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  CRYPTO_ctr128_encrypt((const unsigned char*)p_data, enc_data, data_len, &aes_k, k_iv, ecount_buf, &num, (block128_f)AES_encrypt);
+#else
   AES_ctr128_encrypt((const unsigned char*)p_data, enc_data, data_len, &aes_k, k_iv, ecount_buf, &num);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
   return OCTETSTRING(data_len, enc_data);
 }
